@@ -55,9 +55,9 @@ main>.rate-history:first-child{margin-top:32px;margin-bottom:0}
 
 /* Ambient cash-rate history: decorative, fixed and never interactive. */
 body{isolation:isolate;background:#fafcfd}
-#rate-background{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.22}
+#rate-background{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.34}
 .site-header,main,footer{position:relative}
-@media(max-width:640px){#rate-background{opacity:.16}}
+@media(max-width:640px){#rate-background{opacity:.26}}
 @media print{#rate-background{display:none}}
 
 .hero h1 .nickname{display:block;font-size:.42em;line-height:1.4;letter-spacing:-.02em;margin-top:10px}.hero h1{margin-bottom:28px}
