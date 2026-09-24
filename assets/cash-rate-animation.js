@@ -3,10 +3,10 @@
  const $=s=>root.querySelector(s), ns='http://www.w3.org/2000/svg';
  const play=$('#rate-play'),slider=$('#rate-scrub'),reduce=matchMedia('(prefers-reduced-motion: reduce)');
  let data;
- try {const response=await fetch('/assets/cash-rate-history.json?v=2');if(!response.ok)throw Error();data=await response.json();}
+ try {const response=await fetch('/assets/cash-rate-history.json?v=20260924');if(!response.ok)throw Error();data=await response.json();}
  catch {$('#rate-date').textContent='History unavailable';return;}
  const frames=data.frames, date=s=>Date.parse(s+'T00:00:00Z'),year=365.25*86400000;
- const start=date('2009-01-01'),end=date('2029-01-01');
+ const start=date('2009-01-01'),end=date((Number(frames.at(-1).date.slice(0,4))+4)+'-01-01');
  const max=Math.ceil(Math.max(...frames.map(f=>Math.max(...f.forward)),...data.actual.map(a=>a[1]))),min=-.5;
  let width=1000,height=400,left=40,right=970,bottom=345;
  const x=t=>left+(t-start)/(end-start)*(right-left),y=v=>bottom-(v-min)/(max-min)*(bottom-20);
