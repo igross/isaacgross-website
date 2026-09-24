@@ -52,3 +52,10 @@ main>.rate-history:first-child{margin-top:32px;margin-bottom:0}
 @media(max-width:640px){main>.rate-history:first-child{margin-top:20px}}
 
 #rate-forward{stroke:url(#rate-forward-fade);stroke-width:2.5}
+
+/* Ambient cash-rate history: decorative, fixed and never interactive. */
+body{isolation:isolate;background:#fafcfd}
+#rate-background{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.22}
+.site-header,main,footer{position:relative}
+@media(max-width:640px){#rate-background{opacity:.16}}
+@media print{#rate-background{display:none}}
