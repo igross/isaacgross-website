@@ -46,3 +46,7 @@ img{max-width:100%}.research-layout>*,.media-section>*,.substack-section>*{min-w
  details summary{min-height:44px;padding:10px 0}.paper-link,.footer-links a,.social-link,.substack-section .text-link{display:inline-flex;align-items:center;min-height:44px}
  .actions{gap:12px 20px}.footer-links{gap:4px 20px}
 }
+
+/* Lead the homepage with the animation. */
+main>.rate-history:first-child{margin-top:32px;margin-bottom:0}
+@media(max-width:640px){main>.rate-history:first-child{margin-top:20px}}
