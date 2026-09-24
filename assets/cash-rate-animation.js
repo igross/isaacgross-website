@@ -18,6 +18,7 @@
  let index=0,playing=false,raf,last=0,started=false,initialIndex=0;
  const fmt=new Intl.DateTimeFormat('en-AU',{month:'short',year:'numeric',timeZone:'UTC'});
  function draw(){const f=frames[index],t=date(f.date);$('#rate-date').textContent=fmt.format(t);
+ $('#rate-forward-fade').setAttribute('x1',x(t));$('#rate-forward-fade').setAttribute('x2',x(t+data.horizons.at(-1)*year));
  slider.value=index;slider.setAttribute('aria-valuetext',fmt.format(t));$('#rate-forward').setAttribute('d',curve(f));$('#rate-actual').setAttribute('d',actualPath(t));$('#rate-cursor').setAttribute('x1',x(t));$('#rate-cursor').setAttribute('x2',x(t));$('#rate-dot').setAttribute('cx',x(t));$('#rate-dot').setAttribute('cy',y(f.target));
  ghosts.forEach(([i,p])=>p.style.display=i<index?'':'none');$('#rate-future').style.display=$('#rate-reveal').checked?'':'none';
  }

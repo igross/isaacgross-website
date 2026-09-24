@@ -50,3 +50,5 @@ img{max-width:100%}.research-layout>*,.media-section>*,.substack-section>*{min-w
 /* Lead the homepage with the animation. */
 main>.rate-history:first-child{margin-top:32px;margin-bottom:0}
 @media(max-width:640px){main>.rate-history:first-child{margin-top:20px}}
+
+#rate-forward{stroke:url(#rate-forward-fade);stroke-width:2.5}
