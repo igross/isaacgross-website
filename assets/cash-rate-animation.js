@@ -3,10 +3,10 @@
  const $=s=>root.querySelector(s), ns='http://www.w3.org/2000/svg';
  const play=$('#rate-play'),slider=$('#rate-scrub'),reduce=matchMedia('(prefers-reduced-motion: reduce)');
  let data;
- try {const response=await fetch('/assets/cash-rate-history.json?v=20260924-2000');if(!response.ok)throw Error();data=await response.json();}
+ try {const response=await fetch('/assets/cash-rate-history.json?v=20260924-ten');if(!response.ok)throw Error();data=await response.json();}
  catch {$('#rate-date').textContent='History unavailable';return;}
  const frames=data.frames, date=s=>Date.parse(s+'T00:00:00Z'),year=365.25*86400000;
- const start=date('2000-01-01'),end=date((Number(frames.at(-1).date.slice(0,4))+4)+'-01-01');
+ const start=date('2000-01-01'),end=date((Number(frames.at(-1).date.slice(0,4))+11)+'-01-01');
  const max=Math.ceil(Math.max(...frames.map(f=>Math.max(...(f.forward||[]))),...data.actual.map(a=>a[1]))),min=-.5;
  let width=1000,height=400,left=40,right=970,bottom=345;
  const x=t=>left+(t-start)/(end-start)*(right-left),y=v=>bottom-(v-min)/(max-min)*(bottom-20);
@@ -36,7 +36,7 @@
  $('#rate-cursor').setAttribute('y2',bottom);
  $('#rate-grid').replaceChildren();$('#rate-labels').replaceChildren();
  for(let v=0;v<=max;v++){$('#rate-grid').append(el('line',{x1:left,x2:right,y1:y(v),y2:y(v)}));$('#rate-labels').append(el('text',{x:left-8,y:y(v)+4,'text-anchor':'end'},v+'%'));}
- const years=width<600?[2000,2010,2020,2030]:[2000,2005,2010,2015,2020,2025,2030];
+ const years=width<600?[2000,2010,2020,2030]:[2000,2005,2010,2015,2020,2025,2030,2035];
  for(const yr of years)$('#rate-labels').append(el('text',{x:x(date(yr+'-01-01')),y:height-10,'text-anchor':'middle'},String(yr)));
  ghosts.forEach(([i,p])=>p.setAttribute('d',curve(frames[i])));
  $('#rate-future').setAttribute('d',actualPath(date(frames.at(-1).date)));draw();
