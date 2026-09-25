@@ -24,3 +24,5 @@
 .segmented[data-model=dsge] .model-glider{background:linear-gradient(120deg,#1d438a,#245bc2)}
 
 .shock-size-note{font-size:.7rem;line-height:1.4;color:var(--muted);margin:0 0 8px}
+
+.chart .baseline{stroke-dasharray:none}.legend .base-line{border-top-style:solid}
