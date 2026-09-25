@@ -84,7 +84,7 @@ function update(){
   peer=comparison(data,model,amounts);peerResult=peer?scenario(data,peer.model,peer.amounts):null;
   const active=Object.values(amounts).filter(v=>v!==0).length;
   $('scenario-status').textContent=notice||(active?`${active} ${active===1?'shock':'shocks'} applied from September 2026.`:'RBA baseline · no shocks');
-  if(active)$('scenario-status').textContent=peer?'MARTIN + DINGO · matched shock sizes':`${model.id==='martin'?'MARTIN':'DINGO'} · selected shocks`;
+  if(active)$('scenario-status').textContent=peer?'MARTIN + DINGO':`${model.id==='martin'?'MARTIN':'DINGO'} · selected shocks`;
   document.documentElement.dataset.model=model.id;
   $('empty-shocks').hidden=Object.keys(amounts).length>0;
   const automatic=new Set(Object.keys(amounts).map(id=>shockPaths[model.id][id].forecast).filter(Boolean));
