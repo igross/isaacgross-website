@@ -1,13 +1,14 @@
 import {scenario,csv} from './scenario-engine.mjs?v=3';
 import {fixedScales,axisTicks} from './scenario-scales.mjs?v=3';
+import {comparison} from './model-comparison.mjs';
 const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
 const signed=v=>(v>0?'+':'')+number(v);
-let references,scales,plotId=0,data,model,amounts={},result,notice='',selected=new Set(['RGDP','GDPPC','TMI','UR','CR','RHFCE','RDI']);
+let references,scales,plotId=0,data,model,amounts={},result,peer,peerResult,notice='',selected=new Set(['RGDP','GDPPC','TMI','UR','CR','RHFCE','RDI']);
 const rawCache={};let explorerVersion=0;
 
-function plot(base,path,labels,published,title,{native=false,domain=null,historical=false,variable=null}={}){
+function plot(base,path,labels,published,title,{native=false,domain=null,historical=false,variable=null,otherPath=null}={}){
   const columns=innerWidth<=540?1:2;
   const cardWidth=($('chart-grid').clientWidth-(columns-1)*(innerWidth<=1100?12:18))/columns;
   const width=native?600:Math.max(210,cardWidth-(innerWidth<=540?38:innerWidth<=1100?26:34));
@@ -30,14 +31,15 @@ function plot(base,path,labels,published,title,{native=false,domain=null,histori
   const ticks=[0,Math.floor((labels.length-1)/2),labels.length-1];
   ticks.forEach(i=>{content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(labels[i])}</text>`;});
   content+=`<defs><clipPath id="${clipId}"><rect x="${left}" y="${top}" width="${width-left-right}" height="${height-top-bottom}"/></clipPath></defs><g clip-path="url(#${clipId})">`;
-  if(path.every(Number.isFinite))content+=`<path class="area" d="${pathD(path)} ${base.map((v,j)=>{const i=base.length-1-j;return `L${x(i)},${y(base[i])}`;}).join(' ')} Z"/>`;
+  if(!otherPath&&path.every(Number.isFinite))content+=`<path class="area" d="${pathD(path)} ${base.map((v,j)=>{const i=base.length-1-j;return `L${x(i)},${y(base[i])}`;}).join(' ')} Z"/>`;
   const changed=native||path.some((v,i)=>Number.isFinite(v)&&Math.abs(v-base[i])>1e-10);
   content+=`<path class="baseline ${native?'zero-reference':''}" d="${pathD(base)}"/>`;
-  if(changed)content+=`<path class="scenario" d="${pathD(path)}"/>`;
+  if(changed)content+=`<path class="scenario model-${model.id}" d="${pathD(path)}"><title>${model.id==='martin'?'MARTIN':'DINGO'}</title></path>`;
+  if(otherPath)content+=`<path class="scenario model-${peer.model.id}" d="${pathD(otherPath)}"><title>${peer.model.id==='martin'?'MARTIN':'DINGO'}</title></path>`;
   labels.forEach((label,i)=>{if(!published[i])return;
     const actual=!native&&i===0&&historical;
     content+=`<circle class="baseline-dot ${actual?'actual-dot':''}" cx="${x(i)}" cy="${y(base[i])}" r="3"><title>${safe(label)}: ${actual?'actual':native?'zero reference':'RBA forecast'} ${number(base[i],3)}</title></circle>`;
-    if(changed&&Number.isFinite(path[i])&&(native||i>=data.shockStart))content+=`<circle tabindex="0" role="img" aria-label="${safe(title)}, ${safe(label)}: ${number(path[i],3)}; baseline ${number(base[i],3)}" class="scenario-dot" cx="${x(i)}" cy="${y(path[i])}" r="3.7"><title>${safe(label)}: scenario ${number(path[i],3)}; baseline ${number(base[i],3)}</title></circle>`;
+    if(changed&&Number.isFinite(path[i])&&(native||i>=data.shockStart))content+=`<circle tabindex="0" role="img" aria-label="${safe(title)}, ${safe(label)}: ${number(path[i],3)}; baseline ${number(base[i],3)}" class="scenario-dot model-${model.id}" cx="${x(i)}" cy="${y(path[i])}" r="3.7"><title>${safe(label)}: scenario ${number(path[i],3)}; baseline ${number(base[i],3)}</title></circle>`;
   });
   if(variable==='UR'){
     const value=references.nairu.values.at(-1);
@@ -49,16 +51,20 @@ function plot(base,path,labels,published,title,{native=false,domain=null,histori
 
 function update(){
   result=scenario(data,model,amounts);
+  peer=comparison(data,model,amounts);peerResult=peer?scenario(data,peer.model,peer.amounts):null;
   const active=Object.values(amounts).filter(v=>v!==0).length;
   $('scenario-status').textContent=notice||(active?`${active} ${active===1?'shock':'shocks'} applied from September 2026.`:'RBA baseline · no shocks');
+  if(peer)$('scenario-status').textContent='MARTIN + DINGO · matched shock sizes';
   $('empty-shocks').hidden=Object.keys(amounts).length>0;
   $('variable-count').textContent=`(${selected.size} selected)`;
   $('chart-grid').innerHTML=[...selected].map(key=>[key,data.baseline[key]]).map(([key,b])=>{
-    const s=result[key];
-    if(!s.covered)return `<article class="chart-card unmodeled" data-variable="${key}"><h3>${safe(b.name)} <span>(variable not modeled)</span></h3></article>`;
-    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}</p></details>`:''}</article>`;
+    const s=result[key],other=peerResult?.[key];
+    if(!s.covered&&!other?.covered)return `<article class="chart-card unmodeled" data-variable="${key}"><h3>${safe(b.name)} <span>(variable not modeled)</span></h3></article>`;
+    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key,otherPath:other?.covered?other.values:null})}${[...s.values,...(other?.values||[])].some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${peer&&(!s.covered||!other?.covered)?`<p class="coverage">${!s.covered?model.id==='dsge'?'DINGO':'MARTIN':peer.model.id==='dsge'?'DINGO':'MARTIN'}: variable not modeled.</p>`:''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}${peer?.model.mappingNotes[key]?'<br>'+safe(peer.model.mappingNotes[key]):''}</p></details>`:''}</article>`;
   }).join('');
-  $('scenario-table').innerHTML='<thead><tr><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+Object.entries(result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.baseline[key].derived?'Derived':data.published[t]?'Published':'Interpolated'}</td></tr>`)).join('')+'</tbody>';
+  const outputs=[{model,result},...(peer?[{model:peer.model,result:peerResult}]:[])];
+  $('scenario-table').innerHTML='<thead><tr><th>Model</th><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+outputs.flatMap(o=>Object.entries(o.result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${o.model.id==='martin'?'MARTIN':'DINGO'}</td><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.baseline[key].derived?'Derived':data.published[t]?'Published':'Interpolated'}</td></tr>`))).join('')+'</tbody>';
+
 }
 
 function shockLimit(s){
@@ -157,7 +163,7 @@ try{
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
   $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}const s=model.shocks.find(s=>s.id===id);amounts[id]=(shockLimit(s)<1?.1:s.unit==='percentage points'?.25:1)/(s.displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
   $('all-variables').addEventListener('click',()=>{selected=new Set(Object.keys(data.baseline));variableUI();update();});
-  $('download').addEventListener('click',()=>{const blob=new Blob([csv(data,model,result,amounts)],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`australian-scenario-${model.id}-aug2026.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+  $('download').addEventListener('click',()=>{const blob=new Blob([csv(data,model,result,amounts)+(peer?'\r\n\r\n'+csv(data,peer.model,peerResult,peer.amounts):'')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`australian-scenario-${model.id}-aug2026.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
   $('explorer').addEventListener('toggle',()=>{if($('explorer').open)loadExplorer();});
   $('explorer-shock').addEventListener('change',explorerPlot);$('explorer-variable').addEventListener('change',explorerPlot);
   let resizeFrame;
