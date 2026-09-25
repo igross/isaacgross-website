@@ -6,7 +6,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const f=(x,n=2)=>Number(x).toFixed(n),parts=['inflation','unemployment','smoothing'];
 const names={CR:'Cash rate',TMI:'Trimmed mean inflation',UR:'Unemployment',LOSS:'Quarterly loss'};
 const units={CR:'%',TMI:'Year-ended %',UR:'%',LOSS:'Weighted squared percentage points'};
-function settingValues(){const v={...DEFAULTS};$$('[data-number]').forEach(e=>v[e.dataset.number]=e.value===''?NaN:Number(e.value));$$('[data-option]').forEach(e=>v[e.dataset.option]=e.value===''?NaN:Number(e.value));validate(v);return v;}
+function settingValues(){const v={...DEFAULTS};$$('[data-number]').forEach(e=>{if(!e.validity.valid)throw Error(`${e.getAttribute('aria-label')} must be between ${e.min} and ${e.max}, in steps of ${e.step}.`);v[e.dataset.number]=Number(e.value);});$$('[data-option]').forEach(e=>v[e.dataset.option]=e.value===''?NaN:Number(e.value));validate(v);return v;}
 function stop(){cancelAnimationFrame(raf);animation=null;paused=false;}
 function cancelJob(){job++;worker?.terminate();worker=null;$('#optimize').textContent='Optimize';$('#optimize').disabled=!data;$('.policy-controls').removeAttribute('aria-busy');}
 function error(message){$('#policy-error').textContent=message||'';$('#policy-error').hidden=!message;}
@@ -42,7 +42,7 @@ function buildCharts(target=null){
     if(k==='LOSS')note='Lower is better';if(k==='CR')note='Dashed grid: 25 bp · dots: quarterly decisions';
     const article=document.createElement('article');article.className='policy-chart';article.dataset.variable=k;
     const markers=(m)=>`<g class="${m}-points" ${m==='base'?'':'hidden'}>${data.quarters.map((q,t)=>k==='LOSS'&&t===0?'':`<circle class="point ${m}-point" data-quarter="${t}" cx="${x(t)}" cy="${y(0)}" r="${m==='base'?2:2.5}"><title>${q}</title></circle>`).join('')}</g>`;
-    article.innerHTML=`<h3>${names[k]}</h3><p class="unit">${units[k]}</p><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${names[k]} forecast chart"><title>${names[k]}: baseline, quarterly path and policy rule</title>${ref}${axes}<path class="base"/>${k==='CR'?'<path class="market-line"/><g class="market-points"></g>':''}${METHODS.map(m=>`<path class="optimized ${m}-line" hidden/>`).join('')}${markers('base')}${METHODS.map(markers).join('')}<circle class="decision-cursor" r="5" hidden/><rect class="frame" x="${L}" y="${T}" width="${w}" height="${h}"/></svg><p class="chart-ref">${note}</p>`;
+    article.innerHTML=`<h3>${names[k]}</h3><p class="unit">${units[k]}</p><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${names[k]} forecast chart"><title>${names[k]}: baseline, quarterly path and policy rule</title>${ref}${axes}<path class="base"/>${k==='CR'?'<path class="market-line"/>':''}${METHODS.map(m=>`<path class="optimized ${m}-line" hidden/>`).join('')}${markers('base')}${METHODS.map(markers).join('')}<circle class="decision-cursor" r="5" hidden/><rect class="frame" x="${L}" y="${T}" width="${w}" height="${h}"/></svg><p class="chart-ref">${note}</p>`;
     $('#policy-charts').append(article);
     const path=vals=>{let d='',connected=false;vals.forEach((v,t)=>{if(v===null){connected=false;return;}d+=`${connected?'L':'M'}${x(t).toFixed(2)},${y(v).toFixed(2)} `;connected=true;});return d;};
     charts[k]={article,path,x,y,points:Object.fromEntries(['base',...METHODS].map(m=>[m,[...article.querySelectorAll(`.${m}-points circle`)]]))};
@@ -51,7 +51,6 @@ function buildCharts(target=null){
     if(k==='CR'&&market){
       let line='',last=null;for(const p of market.points){line+=`${last!==null&&p.serial-last===1?'L':'M'}${x(p.t)},${y(p.value)} `;last=p.serial;}
       article.querySelector('.market-line').setAttribute('d',line);
-      article.querySelector('.market-points').innerHTML=market.points.filter(p=>Number.isInteger(p.t)).map(p=>`<circle cx="${x(p.t)}" cy="${y(p.value)}" r="2.5" class="market-point"><title>${data.quarters[p.t]} · Market ${f(p.value,3)}%</title></circle>`).join('');
     }
   }
   buildBars(target);buildDecisionChart(target);

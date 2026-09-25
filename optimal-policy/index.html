@@ -4,8 +4,8 @@
 <link rel="canonical" href="https://isaacgross.net/optimal-policy/"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css?v=20260924-darker">
 </head><body><canvas id="rate-background" aria-hidden="true"></canvas><script src="/assets/rate-background.js?v=1" defer></script><a class="skip" href="#main">Skip to content</a>
 <header class="site-header wrap"><a class="wordmark" href="/">Isaac Gross<span>Economist</span></a><nav aria-label="Main navigation"><a href="/">Home</a><a href="/research/">Research</a><a href="/in-the-news/">In the News</a><a href="/teaching/">Teaching</a><a href="/scenario-analysis/">Scenario analysis</a><a href="/optimal-policy/" aria-current="page">Optimal Policy</a><a href="https://gross.substack.com/">Substack</a></nav></header>
-<main id="main" class="wrap"><link rel="stylesheet" href="assets/policy.css?v=2">
-<script type="module" src="assets/policy.mjs?v=2"></script>
+<main id="main" class="wrap"><link rel="stylesheet" href="assets/policy.css?v=3">
+<script type="module" src="assets/policy.mjs?v=3"></script>
 <header class="policy-heading"><p class="eyebrow">MARTIN · August 2026 RBA forecasts</p><h1>Optimal Policy<span class="period">.</span></h1><p class="lead">Choose the trade-offs. Find the cash-rate path.</p></header>
 <p id="policy-loading" role="status">Loading the forecasts and MARTIN responses…</p>
 <noscript><p>Enable JavaScript to run the policy optimizer.</p></noscript>
@@ -14,9 +14,9 @@
 <aside class="policy-controls">
 <form id="policy-form">
 <h2>Loss weights</h2>
-<div class="weight-control"><label for="weight-inflation">Inflation <span>Distance from 2.5%</span></label><div><input type="range" id="weight-inflation" data-setting="inflation" min="0" max="10" step="0.1" value="1"><input type="number" data-number="inflation" aria-label="Inflation weight" min="0" max="10" step="0.1" value="1" required></div></div>
-<div class="weight-control"><label for="weight-unemployment">Unemployment <span>Distance from NAIRU <b id="nairu-value">4.89%</b></span></label><div><input type="range" id="weight-unemployment" data-setting="unemployment" min="0" max="10" step="0.1" value="1"><input type="number" data-number="unemployment" aria-label="Unemployment weight" min="0" max="10" step="0.1" value="1" required></div></div>
-<div class="weight-control"><label for="weight-smoothing">Rate smoothing <span>Quarterly cash-rate changes</span></label><div><input type="range" id="weight-smoothing" data-setting="smoothing" min="0" max="10" step="0.1" value="0.5"><input type="number" data-number="smoothing" aria-label="Rate smoothing weight" min="0" max="10" step="0.1" value="0.5" required></div></div>
+<div class="weight-control"><label for="weight-inflation">Inflation <span>Distance from 2.5%</span></label><div><input type="range" id="weight-inflation" data-setting="inflation" min="0" max="2" step="0.1" value="1"><input type="number" data-number="inflation" aria-label="Inflation weight" min="0" max="2" step="0.1" value="1" required></div></div>
+<div class="weight-control"><label for="weight-unemployment">Unemployment <span>Distance from NAIRU <b id="nairu-value">4.89%</b></span></label><div><input type="range" id="weight-unemployment" data-setting="unemployment" min="0" max="2" step="0.1" value="1"><input type="number" data-number="unemployment" aria-label="Unemployment weight" min="0" max="2" step="0.1" value="1" required></div></div>
+<div class="weight-control"><label for="weight-smoothing">Rate smoothing <span>Quarterly cash-rate changes</span></label><div><input type="range" id="weight-smoothing" data-setting="smoothing" min="0" max="1" step="0.1" value="0.5"><input type="number" data-number="smoothing" aria-label="Rate smoothing weight" min="0" max="1" step="0.1" value="0.5" required></div></div>
 <div class="loss-formula" aria-label="Loss function"><span>Minimize the sum across quarters</span><div><b id="formula-pi">1</b> (inflation − 2.5)²<br>+ <b id="formula-u">1</b> (unemployment − NAIRU)²<br>+ <b id="formula-i">0.5</b> (cash-rate change)²</div></div>
 <details class="policy-settings"><summary>Rate limits &amp; assumptions</summary>
 <label>Minimum cash rate (%)<input type="number" data-option="minRate" min="0" max="9.5" step="0.1" value="0" required></label>
