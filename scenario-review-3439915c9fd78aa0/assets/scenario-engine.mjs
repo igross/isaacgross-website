@@ -29,8 +29,8 @@ export function scenario(data, model, amounts) {
 export function csv(data, model, result, amounts) {
   const cell = value => '"' + String(value ?? '').replaceAll('"', '""') + '"';
   const rows = [['Model', model.name], ['Baseline', data.vintage], ['Shocks start',data.quarters[data.shockStart]],
-    ['Shock units','One standard deviation unless stated otherwise'],
-    ...Object.entries(amounts).filter(([, a])=>a!==0).map(([id,a])=>['Shock',id,a,model.shocks.find(s=>s.id===id).unit]),
+    ['Shock units','Percent or percentage points as specified for each shock'],
+    ...Object.entries(amounts).filter(([, a])=>a!==0).map(([id,a])=>['Shock',id,a*(model.shocks.find(s=>s.id===id).displayFactor||1),model.shocks.find(s=>s.id===id).unit,model.shocks.find(s=>s.id===id).sizeDescription||'']),
     ['Variable','Unit','Quarter','Endpoint status','Baseline','Scenario','Difference','Response coverage']];
   for (const [key, series] of Object.entries(result)) {
     data.quarters.forEach((q,t)=>rows.push([data.baseline[key].name,data.baseline[key].unit,q,

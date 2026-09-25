@@ -22,3 +22,5 @@
 .legend .martin-line{border-top:3px solid #b52b32}.legend .dingo-line{border-top:3px solid #245bc2}
 .segmented .model-glider{background:linear-gradient(120deg,#85232a,#b52b32)}
 .segmented[data-model=dsge] .model-glider{background:linear-gradient(120deg,#1d438a,#245bc2)}
+
+.shock-size-note{font-size:.7rem;line-height:1.4;color:var(--muted);margin:0 0 8px}

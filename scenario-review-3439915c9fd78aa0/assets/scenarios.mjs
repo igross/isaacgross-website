@@ -1,5 +1,5 @@
-import {scenario,csv} from './scenario-engine.mjs';
-import {fixedScales,axisTicks} from './scenario-scales.mjs?v=2';
+import {scenario,csv} from './scenario-engine.mjs?v=2';
+import {fixedScales,axisTicks} from './scenario-scales.mjs?v=3';
 const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -58,12 +58,12 @@ function update(){
 
 function renderShocks(){
   $('download').disabled=false;
-  $('shock-list').innerHTML=Object.keys(amounts).map(id=>{const s=model.shocks.find(s=>s.id===id);return `<div class="shock" data-shock="${id}"><div class="shock-head"><label for="amount-${id}">${safe(s.name)}</label><button class="quiet remove-shock" data-remove="${id}" aria-label="Remove ${safe(s.name)}">×</button></div><div class="shock-unit">${safe(s.unit)}</div><div class="shock-fields"><input aria-label="${safe(s.name)} slider" type="range" min="-10" max="10" step="0.05" value="${amounts[id]}" data-range="${id}"><input id="amount-${id}" aria-label="${safe(s.name)} amount in ${safe(s.unit)}" type="number" min="-10" max="10" step="any" value="${Number(amounts[id].toFixed(4))}" data-number="${id}"></div></div>`;}).join('');
+  $('shock-list').innerHTML=Object.keys(amounts).map(id=>{const s=model.shocks.find(s=>s.id===id);return `<div class="shock" data-shock="${id}"><div class="shock-head"><label for="amount-${id}">${safe(s.name)}</label><button class="quiet remove-shock" data-remove="${id}" aria-label="Remove ${safe(s.name)}">×</button></div><div class="shock-unit">${safe(s.unit)}</div><p class="shock-size-note">${safe(s.sizeDescription||'')}</p><div class="shock-fields"><input aria-label="${safe(s.name)} slider" type="range" min="-10" max="10" step="0.05" value="${amounts[id]*(s.displayFactor||1)}" data-range="${id}"><input id="amount-${id}" aria-label="${safe(s.name)} amount in ${safe(s.unit)}" type="number" min="-10" max="10" step="any" value="${Number((amounts[id]*(s.displayFactor||1)).toFixed(4))}" data-number="${id}"></div></div>`;}).join('');
   $('shock-list').querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>{delete amounts[b.dataset.remove];notice='';renderShocks();update();}));
   $('shock-list').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{
     const id=input.dataset.range||input.dataset.number,value=Number(input.value);
     if(input.value===''||!Number.isFinite(value)||Math.abs(value)>10){input.setCustomValidity('Enter a number between −10 and 10.');$('download').disabled=true;$('scenario-status').textContent='Enter valid shock amounts between −10 and 10. Charts retain the last valid amounts.';input.reportValidity();return;}
-    input.setCustomValidity('');amounts[id]=value;notice='';
+    input.setCustomValidity('');amounts[id]=value/(model.shocks.find(s=>s.id===id).displayFactor||1);notice='';
     const other=$('shock-list').querySelector(input.dataset.range?`[data-number="${id}"]`:`[data-range="${id}"]`);other.value=value;
     other.setCustomValidity('');$('download').disabled=[...$('shock-list').querySelectorAll('input')].some(el=>!el.validity.valid);
     update();
@@ -134,10 +134,10 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json?v=trimmed-mean');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();scales=fixedScales(data);model=data.models[0];
+  const r=await fetch('assets/scenarios.json?v=percent-units');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();scales=fixedScales(data);model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
-  $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}amounts[id]=1;notice='';renderShocks();update();$(`amount-${id}`).focus();});
+  $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}amounts[id]=1/(model.shocks.find(s=>s.id===id).displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
   $('all-variables').addEventListener('click',()=>{selected=new Set(Object.keys(data.baseline));variableUI();update();});
   $('download').addEventListener('click',()=>{const blob=new Blob([csv(data,model,result,amounts)],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`australian-scenario-${model.id}-aug2026.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
   $('explorer').addEventListener('toggle',()=>{if($('explorer').open)loadExplorer();});
