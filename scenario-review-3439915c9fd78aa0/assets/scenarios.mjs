@@ -134,7 +134,7 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();scales=fixedScales(data);model=data.models[0];
+  const r=await fetch('assets/scenarios.json?v=trimmed-mean');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();scales=fixedScales(data);model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
   $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}amounts[id]=1;notice='';renderShocks();update();$(`amount-${id}`).focus();});
