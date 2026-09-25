@@ -2,7 +2,7 @@
 // No partial comparison: every nonzero selected shock must have a counterpart.
 export function comparison(data,model,amounts){
   const other=data.models.find(m=>m.id!==model.id),mapped={};
-  const pairs=[['ncr','eps_r','CR'],['wpcom','eps_p_star_z',null],['rtwi','eps_psi','TWI']];
+  const pairs=[['ncr','eps_r','CR'],['wpcom','eps_p_star_z',null],['rtwi','eps_psi','TWI'],['wy','eps_y_star','RMTPGDP']];
   const active=Object.entries(amounts).filter(([,v])=>v!==0);
   if(!active.length)return null;
   for(const [id,value] of active){

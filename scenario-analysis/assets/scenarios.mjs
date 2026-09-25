@@ -1,6 +1,6 @@
 import {scenario,csv} from './scenario-engine.mjs?v=3';
 import {fixedScales,axisTicks} from './scenario-scales.mjs?v=3';
-import {comparison} from './model-comparison.mjs';
+import {comparison} from './model-comparison.mjs?v=2';
 const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -81,7 +81,8 @@ function update(){
   peer=comparison(data,model,amounts);peerResult=peer?scenario(data,peer.model,peer.amounts):null;
   const active=Object.values(amounts).filter(v=>v!==0).length;
   $('scenario-status').textContent=notice||(active?`${active} ${active===1?'shock':'shocks'} applied from September 2026.`:'RBA baseline · no shocks');
-  if(peer)$('scenario-status').textContent='MARTIN + DINGO · matched shock sizes';
+  if(active)$('scenario-status').textContent=peer?'MARTIN + DINGO · matched shock sizes':`${model.id==='martin'?'MARTIN':'DINGO'} · selected shocks`;
+  document.documentElement.dataset.model=model.id;
   $('empty-shocks').hidden=Object.keys(amounts).length>0;
   const automatic=new Set(Object.keys(amounts).map(id=>shockPaths[model.id][id].forecast).filter(Boolean));
   const visible=new Set([...selected,...automatic]);
@@ -111,6 +112,7 @@ function example(p){
 
 function renderShocks(){
   $('download').disabled=false;
+  shockMenu();
   $('shock-list').innerHTML=Object.keys(amounts).map(id=>{const s=model.shocks.find(s=>s.id===id),limit=shockLimit(s);return `<div class="shock" data-shock="${id}"><div class="shock-head"><label for="amount-${id}">${safe(s.name)}</label><button class="quiet remove-shock" data-remove="${id}" aria-label="Remove ${safe(s.name)}">×</button></div><div class="shock-unit">${safe(s.unit)}</div><details class="shock-size-note"><summary>${s.sizeDescription?.includes('quarterly')?'Quarterly change · details':'Size definition'}</summary><p>${safe(s.sizeDescription||'')}</p></details><div class="shock-fields"><input aria-label="${safe(s.name)} slider" type="range" min="${-limit}" max="${limit}" step="${limit<1?.01:.05}" value="${amounts[id]*(s.displayFactor||1)}" data-range="${id}"><input id="amount-${id}" aria-label="${safe(s.name)} amount in ${safe(s.unit)}" type="number" min="${-limit}" max="${limit}" step="any" value="${Number((amounts[id]*(s.displayFactor||1)).toFixed(4))}" data-number="${id}"></div></div>`;}).join('');
   $('shock-list').querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>{delete amounts[b.dataset.remove];notice='';renderShocks();update();}));
   $('shock-list').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{
@@ -123,41 +125,42 @@ function renderShocks(){
   }));
 }
 
-function chooseModel(id){
-  if(id===model.id)return;
-  model=data.models.find(m=>m.id===id);amounts={};notice='Model changed · shocks reset.';
-  modelUI();variableUI();renderShocks();update();
-  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
-    $('chart-grid').animate([{opacity:.25,transform:'translateY(9px)'},{opacity:1,transform:'translateY(0)'}],{duration:360,easing:'ease-out'});
+const commonPairs=[['ncr','eps_r','Monetary policy'],['wpcom','eps_p_star_z','Commodity prices'],['rtwi','eps_psi','Exchange rate'],['wy','eps_y_star','Foreign demand']];
+function hasExclusive(){return Object.keys(amounts).some(id=>!commonPairs.some(p=>p[model.id==='martin'?0:1]===id));}
+function shockMenu(){
+  const old=$('shock-select').value,exclusive=hasExclusive();
+  const groups=[`<optgroup label="Both models">${commonPairs.map(p=>`<option value="shared:${p[0]}">${p[2]}</option>`).join('')}</optgroup>`];
+  for(const m of data.models){
+    const unavailable=exclusive&&m.id!==model.id;
+    groups.push(`<optgroup label="${m.id==='martin'?'MARTIN':'DINGO'} only${unavailable?' — remove other model’s shocks first':''}">${m.shocks.filter(s=>s.active&&!commonPairs.some(p=>p[m.id==='martin'?0:1]===s.id)).map(s=>`<option value="${m.id}:${s.id}" ${unavailable?'disabled':''}>${safe(s.name)}</option>`).join('')}</optgroup>`);
   }
-  if($('explorer').open)loadExplorer();
+  $('shock-select').innerHTML=groups.join('');
+  if([...$('shock-select').options].some(o=>o.value===old&&!o.disabled))$('shock-select').value=old;
+}
+function resolveChoice(choice){
+  let [owner,id]=choice.split(':');
+  if(owner==='shared')return commonPairs.find(p=>p[0]===id)[model.id==='martin'?0:1];
+  if(owner!==model.id){
+    if(hasExclusive())return null;
+    const translated={};
+    for(const [key,value] of Object.entries(amounts)){
+      const match=comparison(data,model,{[key]:1});
+      for(const [target,scale] of Object.entries(match.amounts))translated[target]=value*scale;
+    }
+    model=data.models.find(m=>m.id===owner);amounts=translated;
+    if($('explorer').open)loadExplorer();
+  }
+  return id;
 }
 function modelUI(){
-  const host=$('model-buttons');
-  if(!host.children.length){
-    host.innerHTML='<span class="model-glider" aria-hidden="true"></span>'+data.models.map(m=>`<button data-model="${m.id}" aria-pressed="false"><strong>${m.id==='martin'?'MARTIN':'DINGO'}</strong></button>`).join('');
-    let swiped=false;
-    host.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(swiped){swiped=false;return;}chooseModel(b.dataset.model);}));
-    host.addEventListener('keydown',e=>{
-      if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
-      e.preventDefault();const i=['ArrowLeft','Home'].includes(e.key)?0:1;
-      chooseModel(data.models[i].id);host.querySelectorAll('button')[i].focus();
-    });
-    let startX;
-    host.addEventListener('pointerdown',e=>{startX=e.clientX;swiped=false;});
-    host.addEventListener('pointerup',e=>{if(startX!==undefined&&Math.abs(e.clientX-startX)>35){swiped=true;chooseModel(data.models[e.clientX>startX?1:0].id);}startX=undefined;});
-    host.addEventListener('pointercancel',()=>{startX=undefined;});
-  }
-  host.dataset.model=model.id;
-  document.documentElement.dataset.model=model.id;
-  host.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.model===model.id)));
-  $('model-description').textContent=model.description;
-  const ranked=['ncr','cash_rate_4q','rc','gc','gi','ph','wpcom','wpoil','rtwi','ptm','eps_r','eps_p_star_z','eps_psi','eps_g','eps_xi_c','eps_mu','eps_upsilon_h'];
-  const shocks=[...model.shocks].sort((a,b)=>(ranked.includes(a.id)?ranked.indexOf(a.id):100)-(ranked.includes(b.id)?ranked.indexOf(b.id):100));
-  $('shock-select').innerHTML=shocks.map(s=>`<option value="${s.id}" ${s.active?'':'disabled'}>${safe(s.name)}${s.active?'':' — inactive'}</option>`).join('');
-  $('presets').innerHTML=model.presets.map((p,i)=>p.shock==='cash_rate_4q'?'':`<button data-preset="${i}">${safe(example(p).name)}</button>`).join('');
-  $('presets').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-    const p=example(model.presets[Number(b.dataset.preset)]);amounts={[p.shock]:p.amount};notice=`Example: ${p.name.toLowerCase()}. `;renderShocks();update();
+  $('model-description').textContent=data.models.map(m=>`${m.id==='martin'?'MARTIN':'DINGO'}: ${m.description}`).join('\n\n');
+  shockMenu();
+  const presets=[['shared:ncr',1,'Cash rate +1 percentage point'],['shared:wpcom',5,'Commodity prices +5%'],['martin:ph',-5,'Housing prices fall 5%'],['shared:rtwi',5,'Dollar appreciates 5%']];
+  $('presets').innerHTML=presets.map((p,i)=>`<button data-preset="${i}">${p[2]}</button>`).join('');
+  $('presets').querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
+    const [choice,value,name]=presets[Number(button.dataset.preset)];amounts={};
+    const id=resolveChoice(choice),shock=model.shocks.find(s=>s.id===id);
+    amounts={[id]:value/shock.displayFactor};notice='';renderShocks();update();
   }));
 }
 
@@ -192,7 +195,7 @@ try{
   scales.TMI=[Math.min(scales.TMI[0],2),Math.max(scales.TMI[1],3)];model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
-  $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}const s=model.shocks.find(s=>s.id===id);amounts[id]=(shockLimit(s)<1?.1:s.unit==='percentage points'?.25:1)/(s.displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
+  $('add-shock').addEventListener('click',()=>{const id=resolveChoice($('shock-select').value);if(!id)return;if(id in amounts){$(`amount-${id}`).focus();return;}const s=model.shocks.find(s=>s.id===id);amounts[id]=(shockLimit(s)<1?.1:s.unit==='percentage points'?.25:1)/(s.displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
   $('all-variables').addEventListener('click',()=>{selected=new Set(Object.keys(data.baseline));variableUI();update();});
   $('download').addEventListener('click',()=>{const blob=new Blob([csv(data,model,result,amounts)+(peer?'\r\n\r\n'+csv(data,peer.model,peerResult,peer.amounts):'')+shockCSV()],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`australian-scenario-${model.id}-aug2026.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
   $('explorer').addEventListener('toggle',()=>{if($('explorer').open)loadExplorer();});
