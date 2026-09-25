@@ -7,7 +7,7 @@ const signed=v=>(v>0?'+':'')+number(v);
 let scales,plotId=0,data,model,amounts={},result,notice='',selected=new Set(['RGDP','TMI','UR','CR','RHFCE','RDI']);
 const rawCache={};let explorerVersion=0;
 
-function plot(base,path,labels,published,title,{native=false,domain=null}={}){
+function plot(base,path,labels,published,title,{native=false,domain=null,historical=false}={}){
   const columns=innerWidth<=540?1:2;
   const cardWidth=($('chart-grid').clientWidth-(columns-1)*(innerWidth<=1100?12:18))/columns;
   const width=native?600:Math.max(210,cardWidth-(innerWidth<=540?38:innerWidth<=1100?26:34));
@@ -27,10 +27,13 @@ function plot(base,path,labels,published,title,{native=false,domain=null}={}){
   ticks.forEach(i=>{content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(labels[i])}</text>`;});
   content+=`<defs><clipPath id="${clipId}"><rect x="${left}" y="${top}" width="${width-left-right}" height="${height-top-bottom}"/></clipPath></defs><g clip-path="url(#${clipId})">`;
   if(path.every(Number.isFinite))content+=`<path class="area" d="${pathD(path)} ${base.map((v,j)=>{const i=base.length-1-j;return `L${x(i)},${y(base[i])}`;}).join(' ')} Z"/>`;
-  content+=`<path class="baseline" d="${pathD(base)}"/><path class="scenario" d="${pathD(path)}"/>`;
+  const changed=native||path.some((v,i)=>Number.isFinite(v)&&Math.abs(v-base[i])>1e-10);
+  content+=`<path class="baseline ${native?'zero-reference':''}" d="${pathD(base)}"/>`;
+  if(changed)content+=`<path class="scenario" d="${pathD(path)}"/>`;
   labels.forEach((label,i)=>{if(!published[i])return;
-    content+=`<circle class="baseline-dot" cx="${x(i)}" cy="${y(base[i])}" r="3"><title>${safe(label)}: baseline ${number(base[i],3)}</title></circle>`;
-    if(Number.isFinite(path[i]))content+=`<circle tabindex="0" role="img" aria-label="${safe(title)}, ${safe(label)}: ${number(path[i],3)}; baseline ${number(base[i],3)}" class="scenario-dot" cx="${x(i)}" cy="${y(path[i])}" r="3.7"><title>${safe(label)}: scenario ${number(path[i],3)}; baseline ${number(base[i],3)}</title></circle>`;
+    const actual=!native&&i===0&&historical;
+    content+=`<circle class="baseline-dot ${actual?'actual-dot':''}" cx="${x(i)}" cy="${y(base[i])}" r="3"><title>${safe(label)}: ${actual?'actual':native?'zero reference':'RBA forecast'} ${number(base[i],3)}</title></circle>`;
+    if(changed&&Number.isFinite(path[i])&&(native||i>=data.shockStart))content+=`<circle tabindex="0" role="img" aria-label="${safe(title)}, ${safe(label)}: ${number(path[i],3)}; baseline ${number(base[i],3)}" class="scenario-dot" cx="${x(i)}" cy="${y(path[i])}" r="3.7"><title>${safe(label)}: scenario ${number(path[i],3)}; baseline ${number(base[i],3)}</title></circle>`;
   });
   content+='</g>';
   return `<svg data-y-min="${lo}" data-y-max="${hi}" class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${safe(title)}"><title>${safe(title)}</title>${content}</svg>`;
@@ -48,7 +51,7 @@ function update(){
     const last=s.values.at(-1),delta=s.delta.at(-1);
     const units=['TWI','Crude'].includes(key)?(key==='TWI'?'index points':'US$/bbl'):'pp';
     const headline=s.covered?`${number(last)}<small><span class="diff">${signed(delta)} ${units}</span> vs baseline</small>`:`${number(b.values.at(-1))}<small>baseline only</small>`;
-    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)} · December 2028: <span class="sr-only">final value</span></p><p class="chart-end">${headline}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key]})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Scenario extends beyond the fixed scale. Full values are available in “View the numbers” and the download.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${model.mappingNotes[key]?`<p class="mapping-note">${safe(model.mappingNotes[key])}</p>`:''}</article>`;
+    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)} · December 2028: <span class="sr-only">final value</span></p><p class="chart-end">${headline}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Scenario extends beyond the fixed scale. Full values are available in “View the numbers” and the download.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${model.mappingNotes[key]?`<p class="mapping-note">${safe(model.mappingNotes[key])}</p>`:''}</article>`;
   }).join('');
   $('scenario-table').innerHTML='<thead><tr><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+Object.entries(result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.published[t]?'Published':'Interpolated'}</td></tr>`)).join('')+'</tbody>';
 }
@@ -93,6 +96,7 @@ function modelUI(){
     host.addEventListener('pointercancel',()=>{startX=undefined;});
   }
   host.dataset.model=model.id;
+  document.documentElement.dataset.model=model.id;
   host.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.model===model.id)));
   $('model-description').textContent=model.description;
   const ranked=['ncr','cash_rate_4q','rc','gc','gi','ph','wpcom','wpoil','rtwi','ptm','eps_r','eps_p_star_z','eps_psi','eps_g','eps_xi_c','eps_mu','eps_upsilon_h'];

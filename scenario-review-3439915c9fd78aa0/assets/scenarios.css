@@ -11,3 +11,14 @@
 @media(prefers-reduced-motion:reduce){.segmented .model-glider,.segmented button{transition:none}}
 
 .uncertainty-note{border-block:1px solid var(--line);margin:24px 0;padding:12px 0}.uncertainty-note summary{cursor:pointer;font-weight:600;padding:8px 0}.uncertainty-note p{font-size:.85rem;max-width:100ch;color:var(--muted)}
+
+/* Consistent semantic colours in charts, legend, controls and model selector. */
+:root{--scenario:#b52b32;--forecast:#155c3b;--scenario-fill:#b52b320b}
+:root[data-model=dsge]{--scenario:#245bc2;--scenario-fill:#245bc20b}
+.chart .baseline{stroke:var(--forecast);stroke-dasharray:5 4}.chart .baseline-dot{stroke:var(--forecast)}
+.chart .actual-dot{fill:#111;stroke:#111;stroke-width:2}.chart .zero-reference{stroke:#8d9ca8}
+.chart .area{fill:var(--scenario-fill)}
+.legend .actual-line{border-top:3px solid #111}.legend .base-line{border-top:2px dashed var(--forecast)}
+.legend .martin-line{border-top:3px solid #b52b32}.legend .dingo-line{border-top:3px solid #245bc2}
+.segmented .model-glider{background:linear-gradient(120deg,#85232a,#b52b32)}
+.segmented[data-model=dsge] .model-glider{background:linear-gradient(120deg,#1d438a,#245bc2)}
