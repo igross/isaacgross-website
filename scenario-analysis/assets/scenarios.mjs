@@ -28,8 +28,11 @@ function plot(base,path,labels,published,title,{native=false,responsive=false,do
     content+=`<rect class="target-band" x="${left}" y="${y(t.upper)}" width="${width-left-right}" height="${y(t.lower)-y(t.upper)}"><title>Inflation target range: 2–3%</title></rect><line class="target-midpoint" x1="${left}" x2="${width-right}" y1="${y(t.midpoint)}" y2="${y(t.midpoint)}"><title>Target midpoint: 2.5%</title></line>`;
   }
   for(const v of axisTicks(lo,hi)){content+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${tick(v)}</text>`;}
-  const ticks=[0,Math.floor((labels.length-1)/2),labels.length-1];
-  ticks.forEach(i=>{content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(labels[i])}</text>`;});
+  labels.forEach((label,i)=>{
+    const major=i%4===0;
+    content+=`<line class="axis-tick ${major?'major':'minor'}" x1="${x(i)}" x2="${x(i)}" y1="${height-bottom}" y2="${height-bottom+(major?7:3.5)}"/>`;
+    if(major)content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(label)}</text>`;
+  });
   content+=`<defs><clipPath id="${clipId}"><rect x="${left}" y="${top}" width="${width-left-right}" height="${height-top-bottom}"/></clipPath></defs><g clip-path="url(#${clipId})">`;
   if(!otherPath&&path.every(Number.isFinite))content+=`<path class="area" d="${pathD(path)} ${base.map((v,j)=>{const i=base.length-1-j;return `L${x(i)},${y(base[i])}`;}).join(' ')} Z"/>`;
   const changed=native||path.some((v,i)=>Number.isFinite(v)&&Math.abs(v-base[i])>1e-10);
@@ -45,7 +48,7 @@ function plot(base,path,labels,published,title,{native=false,responsive=false,do
     const value=references.nairu.values.at(-1);
     content+=`<line class="nairu-line" x1="${left}" x2="${width-right}" y1="${y(value)}" y2="${y(value)}"><title>Baseline NAIRU: ${number(value,2)}%</title></line>`;
   }
-  content+='</g>';
+  content+=`</g><rect class="plot-frame" x="${left}" y="${top}" width="${width-left-right}" height="${height-top-bottom}"/>`;
   return `<svg data-y-min="${lo}" data-y-max="${hi}" class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${safe(title)}"><title>${safe(title)}</title>${content}</svg>`;
 }
 

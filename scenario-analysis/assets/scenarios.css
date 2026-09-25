@@ -32,3 +32,5 @@
 .model-description summary,.mapping-note summary,.shock-size-note summary{cursor:pointer}.model-description p,.mapping-note p,.shock-size-note p{margin:7px 0}.model-description{margin:12px 0 20px}
 
 .chart path.model-martin{stroke:#b52b32}.chart path.model-dsge{stroke:#245bc2}.chart circle.model-martin{fill:#b52b32}.chart circle.model-dsge{fill:#245bc2}
+
+.chart .plot-frame{fill:none;stroke:#7f8b93;stroke-width:.8;vector-effect:non-scaling-stroke}.chart .axis-tick{stroke:#7f8b93;stroke-width:.8;vector-effect:non-scaling-stroke}
