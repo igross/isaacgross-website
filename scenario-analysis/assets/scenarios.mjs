@@ -170,7 +170,7 @@ async function loadExplorer(){
   const id=model.id,version=++explorerVersion;
   $('explorer-chart').textContent='Loading the full response matrix…';
   try{
-    if(!rawCache[id]){const r=await fetch(`assets/${id}-all-irfs.json`);if(!r.ok)throw new Error('Response matrix could not be loaded.');rawCache[id]=await r.json();}
+    if(!rawCache[id]){const r=await fetch(`assets/${id}-all-irfs.json?v=dsge2026`);if(!r.ok)throw new Error('Response matrix could not be loaded.');rawCache[id]=await r.json();}
     if(version!==explorerVersion)return;
     const raw=rawCache[id];$('explorer-units').textContent=raw.units;
     $('explorer-shock').innerHTML=raw.shocks.map(s=>`<option value="${s.id}">${safe(s.name)} (${s.id})${s.active?'':' — inactive'}</option>`).join('');
@@ -187,7 +187,7 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json?v=per-capita');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();const shocks=await fetch('assets/shock-paths.json');if(!shocks.ok)throw new Error('Could not load shock paths.');shockPaths=await shocks.json();scales=fixedScales(data);
+  const r=await fetch('assets/scenarios.json?v=dsge2026');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();const shocks=await fetch('assets/shock-paths.json?v=dsge2026');if(!shocks.ok)throw new Error('Could not load shock paths.');shockPaths=await shocks.json();scales=fixedScales(data);
   scales.UR=[Math.min(scales.UR[0],Math.floor(Math.min(...references.nairu.values)*2)/2),Math.max(scales.UR[1],Math.ceil(Math.max(...references.nairu.values)*2)/2)];
   scales.TMI=[Math.min(scales.TMI[0],2),Math.max(scales.TMI[1],3)];model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
