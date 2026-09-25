@@ -34,7 +34,7 @@ export function csv(data, model, result, amounts) {
     ['Variable','Unit','Quarter','Endpoint status','Baseline','Scenario','Difference','Response coverage']];
   for (const [key, series] of Object.entries(result)) {
     data.quarters.forEach((q,t)=>rows.push([data.baseline[key].name,data.baseline[key].unit,q,
-      data.published[t] ? (t===0 && data.baseline[key].juneHistorical ? 'Historical' : 'RBA published') : 'Interpolated',
+      data.baseline[key].derived ? 'Derived from RBA forecasts' : data.published[t] ? (t===0 && data.baseline[key].juneHistorical ? 'Historical' : 'RBA published') : 'Interpolated',
       series.baseline[t],series.values[t],series.delta[t],series.covered?'Mapped':'Unavailable']));
   }
   return rows.map(row=>row.map(cell).join(',')).join('\r\n');

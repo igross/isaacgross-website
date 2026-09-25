@@ -1,10 +1,10 @@
-import {scenario,csv} from './scenario-engine.mjs?v=2';
+import {scenario,csv} from './scenario-engine.mjs?v=3';
 import {fixedScales,axisTicks} from './scenario-scales.mjs?v=3';
 const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
 const signed=v=>(v>0?'+':'')+number(v);
-let references,scales,plotId=0,data,model,amounts={},result,notice='',selected=new Set(['RGDP','TMI','UR','CR','RHFCE','RDI']);
+let references,scales,plotId=0,data,model,amounts={},result,notice='',selected=new Set(['RGDP','GDPPC','TMI','UR','CR','RHFCE','RDI']);
 const rawCache={};let explorerVersion=0;
 
 function plot(base,path,labels,published,title,{native=false,domain=null,historical=false,variable=null}={}){
@@ -63,7 +63,7 @@ function update(){
     const headline=s.covered?`${number(last)}${Math.abs(delta)>=.005?`<small><span class="diff">${signed(delta)} ${units}</span> vs baseline</small>`:''}`:`${number(b.values.at(-1))}<small>baseline only</small>`;
     return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)} · December 2028: <span class="sr-only">final value</span></p><p class="chart-end">${headline}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>Dashed: held at 4.89% after June 2027.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}</p></details>`:''}</article>`;
   }).join('');
-  $('scenario-table').innerHTML='<thead><tr><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+Object.entries(result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.published[t]?'Published':'Interpolated'}</td></tr>`)).join('')+'</tbody>';
+  $('scenario-table').innerHTML='<thead><tr><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+Object.entries(result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.baseline[key].derived?'Derived':data.published[t]?'Published':'Interpolated'}</td></tr>`)).join('')+'</tbody>';
 }
 
 function shockLimit(s){
@@ -155,7 +155,7 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json?v=smaller-shocks');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();scales=fixedScales(data);
+  const r=await fetch('assets/scenarios.json?v=per-capita');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();scales=fixedScales(data);
   scales.UR=[Math.min(scales.UR[0],Math.floor(Math.min(...references.nairu.values)*2)/2),Math.max(scales.UR[1],Math.ceil(Math.max(...references.nairu.values)*2)/2)];
   scales.TMI=[Math.min(scales.TMI[0],2),Math.max(scales.TMI[1],3)];model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();

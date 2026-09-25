@@ -1,4 +1,4 @@
-import {scenario} from './scenario-engine.mjs?v=2';
+import {scenario} from './scenario-engine.mjs?v=3';
 // One reference domain per forecast variable, independent of active selections.
 // Include both directions of every example from both models, plus baseline.
 export function fixedScales(data) {
