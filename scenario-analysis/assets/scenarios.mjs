@@ -103,9 +103,9 @@ function update(){
 }
 
 function shockLimit(s){
-  if(model.id==='martin'&&['tdlla','tdllhpp','tdllpop','ty'].includes(s.id))return 2.5;
-  if(model.id==='dsge'&&['eps_mu','eps_infl_star','eps_r_star'].includes(s.id))return 2.5;
-  return s.unit==='percentage points'?10:50;
+  if(model.id==='martin'&&['tdlla','tdllhpp','tdllpop','ty'].includes(s.id))return .25;
+  if(model.id==='dsge'&&['eps_mu','eps_infl_star','eps_r_star'].includes(s.id))return .25;
+  return s.unit==='percentage points'?1:10;
 }
 function example(p){
   const s=model.shocks.find(s=>s.id===p.shock),limit=shockLimit(s);
