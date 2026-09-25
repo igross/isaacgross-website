@@ -56,13 +56,24 @@ function update(){
   $('scenario-table').innerHTML='<thead><tr><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+Object.entries(result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.published[t]?'Published':'Interpolated'}</td></tr>`)).join('')+'</tbody>';
 }
 
+function shockLimit(s){
+  if(model.id==='martin'&&['tdlla','tdllhpp','tdllpop','ty'].includes(s.id))return .25;
+  if(model.id==='dsge'&&['eps_mu','eps_infl_star','eps_r_star'].includes(s.id))return .25;
+  return s.unit==='percentage points'?1:5;
+}
+function example(p){
+  const s=model.shocks.find(s=>s.id===p.shock),limit=shockLimit(s);
+  const amount=Math.max(-limit,Math.min(limit,p.amount*s.displayFactor))/s.displayFactor;
+  return {...p,amount,name:p.name.replace('10%','5%')};
+}
+
 function renderShocks(){
   $('download').disabled=false;
-  $('shock-list').innerHTML=Object.keys(amounts).map(id=>{const s=model.shocks.find(s=>s.id===id);return `<div class="shock" data-shock="${id}"><div class="shock-head"><label for="amount-${id}">${safe(s.name)}</label><button class="quiet remove-shock" data-remove="${id}" aria-label="Remove ${safe(s.name)}">×</button></div><div class="shock-unit">${safe(s.unit)}</div><p class="shock-size-note">${safe(s.sizeDescription||'')}</p><div class="shock-fields"><input aria-label="${safe(s.name)} slider" type="range" min="-10" max="10" step="0.05" value="${amounts[id]*(s.displayFactor||1)}" data-range="${id}"><input id="amount-${id}" aria-label="${safe(s.name)} amount in ${safe(s.unit)}" type="number" min="-10" max="10" step="any" value="${Number((amounts[id]*(s.displayFactor||1)).toFixed(4))}" data-number="${id}"></div></div>`;}).join('');
+  $('shock-list').innerHTML=Object.keys(amounts).map(id=>{const s=model.shocks.find(s=>s.id===id),limit=shockLimit(s);return `<div class="shock" data-shock="${id}"><div class="shock-head"><label for="amount-${id}">${safe(s.name)}</label><button class="quiet remove-shock" data-remove="${id}" aria-label="Remove ${safe(s.name)}">×</button></div><div class="shock-unit">${safe(s.unit)}</div><p class="shock-size-note">${safe(s.sizeDescription||'')}</p><div class="shock-fields"><input aria-label="${safe(s.name)} slider" type="range" min="${-limit}" max="${limit}" step="${limit<1?.01:.05}" value="${amounts[id]*(s.displayFactor||1)}" data-range="${id}"><input id="amount-${id}" aria-label="${safe(s.name)} amount in ${safe(s.unit)}" type="number" min="${-limit}" max="${limit}" step="any" value="${Number((amounts[id]*(s.displayFactor||1)).toFixed(4))}" data-number="${id}"></div></div>`;}).join('');
   $('shock-list').querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>{delete amounts[b.dataset.remove];notice='';renderShocks();update();}));
   $('shock-list').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{
-    const id=input.dataset.range||input.dataset.number,value=Number(input.value);
-    if(input.value===''||!Number.isFinite(value)||Math.abs(value)>10){input.setCustomValidity('Enter a number between −10 and 10.');$('download').disabled=true;$('scenario-status').textContent='Enter valid shock amounts between −10 and 10. Charts retain the last valid amounts.';input.reportValidity();return;}
+    const id=input.dataset.range||input.dataset.number,value=Number(input.value),limit=shockLimit(model.shocks.find(s=>s.id===id));
+    if(input.value===''||!Number.isFinite(value)||Math.abs(value)>limit){input.setCustomValidity(`Enter a number between −${limit} and ${limit}.`);$('download').disabled=true;$('scenario-status').textContent=`Enter a shock size between −${limit} and ${limit}. Charts retain the last valid amounts.`;input.reportValidity();return;}
     input.setCustomValidity('');amounts[id]=value/(model.shocks.find(s=>s.id===id).displayFactor||1);notice='';
     const other=$('shock-list').querySelector(input.dataset.range?`[data-number="${id}"]`:`[data-range="${id}"]`);other.value=value;
     other.setCustomValidity('');$('download').disabled=[...$('shock-list').querySelectorAll('input')].some(el=>!el.validity.valid);
@@ -102,9 +113,9 @@ function modelUI(){
   const ranked=['ncr','cash_rate_4q','rc','gc','gi','ph','wpcom','wpoil','rtwi','ptm','eps_r','eps_p_star_z','eps_psi','eps_g','eps_xi_c','eps_mu','eps_upsilon_h'];
   const shocks=[...model.shocks].sort((a,b)=>(ranked.includes(a.id)?ranked.indexOf(a.id):100)-(ranked.includes(b.id)?ranked.indexOf(b.id):100));
   $('shock-select').innerHTML=shocks.map(s=>`<option value="${s.id}" ${s.active?'':'disabled'}>${safe(s.name)}${s.active?'':' — inactive'}</option>`).join('');
-  $('presets').innerHTML=model.presets.map((p,i)=>p.shock==='cash_rate_4q'?'':`<button data-preset="${i}">${safe(p.name)}</button>`).join('');
+  $('presets').innerHTML=model.presets.map((p,i)=>p.shock==='cash_rate_4q'?'':`<button data-preset="${i}">${safe(example(p).name)}</button>`).join('');
   $('presets').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-    const p=model.presets[Number(b.dataset.preset)];amounts={[p.shock]:p.amount};notice=`Example: ${p.name.toLowerCase()}. Previous shocks replaced.`;renderShocks();update();
+    const p=example(model.presets[Number(b.dataset.preset)]);amounts={[p.shock]:p.amount};notice=`Example: ${p.name.toLowerCase()}. Previous shocks replaced.`;renderShocks();update();
   }));
 }
 
@@ -134,10 +145,10 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json?v=percent-units');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();scales=fixedScales(data);model=data.models[0];
+  const r=await fetch('assets/scenarios.json?v=smaller-shocks');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();scales=fixedScales(data);model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
-  $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}amounts[id]=1/(model.shocks.find(s=>s.id===id).displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
+  $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}const s=model.shocks.find(s=>s.id===id);amounts[id]=(shockLimit(s)<1?.1:s.unit==='percentage points'?.25:1)/(s.displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
   $('all-variables').addEventListener('click',()=>{selected=new Set(Object.keys(data.baseline));variableUI();update();});
   $('download').addEventListener('click',()=>{const blob=new Blob([csv(data,model,result,amounts)],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`australian-scenario-${model.id}-aug2026.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
   $('explorer').addEventListener('toggle',()=>{if($('explorer').open)loadExplorer();});

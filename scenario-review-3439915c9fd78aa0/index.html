@@ -16,7 +16,7 @@ window.addEventListener('DOMContentLoaded', function () {
   }, 15000);
 });
 </script>
-<script type="module" src="assets/scenarios.mjs?v=10"></script></head>
+<script type="module" src="assets/scenarios.mjs?v=11"></script></head>
 <body><a class="skip" href="#main">Skip to content</a>
 <header class="site-header wrap"><a class="wordmark" href="https://isaacgross.net/">Isaac Gross<span>Economist</span></a><nav aria-label="Main navigation"><a href="https://isaacgross.net/research/">Research</a><a href="https://isaacgross.net/teaching/">Teaching</a><a href="#main" aria-current="page">Scenario analysis</a></nav></header>
 <main id="main" class="wrap">
@@ -28,7 +28,7 @@ window.addEventListener('DOMContentLoaded', function () {
 <div class="scenario-layout">
 <aside class="controls" aria-labelledby="shock-title"><div class="control-title"><h2 id="shock-title">02 / Add shocks</h2><button id="reset" class="quiet">Reset</button></div><p class="help">Combine shocks, or try an example.</p><div id="presets" class="presets"></div>
 <label for="shock-select">Add a shock</label><div class="add-row"><select id="shock-select"></select><button id="add-shock" class="solid">Add</button></div><div id="shock-list"></div><p id="empty-shocks" class="empty">No shocks selected.<br>The scenario equals the baseline wherever a model response is available.</p>
-<div class="assumption-note"><strong>How to read the amounts</strong><p>Enter changes in %; interest rates, inflation rates and shares use percentage points. Each shock explains the quantity being changed. Negative values reverse its direction. Shocks arrive together in September 2026.</p></div>
+<div class="assumption-note"><strong>How to read the amounts</strong><p>Enter changes in %; interest rates, inflation rates and shares use percentage points. Each shock explains the quantity being changed. Limits are ±5% for level shocks, ±1 percentage point for rates and ±0.25 points for quarterly trend-growth shocks. Negative values reverse its direction. Shocks arrive together in September 2026.</p></div>
 </aside>
 <section class="results" aria-labelledby="results-title"><div class="results-top"><div><p class="step-label">03 / Explore the outcome</p><h2 id="results-title">The path ahead</h2></div><button id="download" class="outline">Download scenario</button></div>
 <div class="legend"><span><i class="actual-line"></i>Actual data</span><span><i class="base-line"></i>RBA forecast</span><span><i class="martin-line"></i>MARTIN</span><span><i class="dingo-line"></i>DINGO</span><span class="points-note">Dots: published endpoints</span></div>
