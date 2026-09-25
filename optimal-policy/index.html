@@ -4,8 +4,8 @@
 <link rel="canonical" href="https://isaacgross.net/optimal-policy/"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css?v=20260924-darker">
 </head><body><canvas id="rate-background" aria-hidden="true"></canvas><script src="/assets/rate-background.js?v=1" defer></script><a class="skip" href="#main">Skip to content</a>
 <header class="site-header wrap"><a class="wordmark" href="/">Isaac Gross<span>Economist</span></a><nav aria-label="Main navigation"><a href="/">Home</a><a href="/research/">Research</a><a href="/in-the-news/">In the News</a><a href="/teaching/">Teaching</a><a href="/australian-economic-analysis/" aria-current="location">Australian Economic Analysis</a><a href="https://gross.substack.com/">Substack</a></nav></header>
-<main id="main" class="wrap"><link rel="stylesheet" href="assets/policy.css?v=3">
-<script type="module" src="assets/policy.mjs?v=3"></script>
+<main id="main" class="wrap"><link rel="stylesheet" href="assets/policy.css?v=4">
+<script type="module" src="assets/policy.mjs?v=4"></script>
 <header class="policy-heading"><p class="eyebrow">MARTIN · August 2026 RBA forecasts</p><h1>Optimal Policy<span class="period">.</span></h1><p class="lead">Choose the trade-offs. Find the cash-rate path.</p></header>
 <p id="policy-loading" role="status">Loading the forecasts and MARTIN responses…</p>
 <noscript><p>Enable JavaScript to run the policy optimizer.</p></noscript>
@@ -36,7 +36,7 @@
 <p id="market-status" class="market-status" role="status">Loading market rates…</p>
 <div class="playback"><p id="policy-status" role="status" aria-live="polite">Set the weights, then select Optimize.</p><div><button id="replay-policy" class="light-button" hidden>Replay</button><button id="finish-policy" class="light-button" hidden>Show result</button></div></div>
 <div id="policy-charts" class="policy-charts"></div>
-<section class="decision-card" aria-labelledby="decision-title"><h3 id="decision-title">Quarterly hikes &amp; cuts</h3><p class="small-note">Net change from the previous quarter. One 25 bp equivalent = 0.25 percentage points.</p><div id="decision-chart"></div><div class="policy-table-scroll"><table id="decision-table"></table></div><p class="small-note">Rates are continuous: fractional hike/cut equivalents are not a count of RBA meetings.</p></section>
+<section class="decision-card" aria-labelledby="decision-title"><h3 id="decision-title">Quarterly hikes &amp; cuts</h3><p class="small-note">Net change from the previous quarter. One 25 bp equivalent = 0.25 percentage points.</p><div class="policy-legend decision-legend"><span><i class="baseline-key"></i>RBA baseline</span><span><i class="path-key"></i>Quarterly path</span><span><i class="rule-key"></i>Policy rule</span></div><div id="decision-chart"></div><div class="policy-table-scroll"><table id="decision-table"></table></div><p class="small-note">Rates are continuous: fractional hike/cut equivalents are not a count of RBA meetings.</p></section>
 <section class="loss-comparison" aria-labelledby="loss-title"><div class="loss-heading"><h3 id="loss-title">Total loss over the horizon</h3><div id="loss-change">Baseline</div></div><div id="loss-bars"></div><div class="loss-legend"><span><i class="loss-inflation"></i>Inflation</span><span><i class="loss-unemployment"></i>Unemployment</span><span><i class="loss-smoothing"></i>Smoothing</span></div><p class="small-note" id="loss-note">Sum of quarterly losses, in weighted squared percentage points.</p></section>
 <details id="rule-results" hidden><summary>Fitted policy rule</summary><div id="rule-coefficients"></div><p class="rule-equation">iₜ = ρ iₜ₋₁ + (1 − ρ)[r* + πₜ + φπ(πₜ − 2.5) − φu(uₜ − u*)] − φd(uₜ − uₜ₋₂)</p><p id="rule-search-note"></p></details>
 <details class="policy-numbers"><summary>View the numbers</summary><div class="policy-table-scroll"><table id="policy-table"></table></div></details>

@@ -1,5 +1,5 @@
 import {DEFAULTS,validate,evaluate} from './policy-engine.mjs?v=1';
-import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,comparisonCSV} from './policy-display.mjs?v=2';
+import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,comparisonCSV} from './policy-display.mjs?v=3';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 let data,settings={...DEFAULTS},baseline,results,worker,job=0,animation,progress=0,paused=false,raf,charts={},domains={},market,marketRefresh=0,lastDraw=null;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -68,24 +68,26 @@ function updateBar(id,r){$$(`#${id}-bar span`).forEach(e=>{const v=r?.parts[e.da
 function buildDecisionChart(target){
   const W=720,H=195,L=43,R=16,T=20,B=32,w=W-L-R,h=H-T-B;
   // Allow room for intermediate visual transitions as adjacent points reveal.
-  let peak=settings.maxMove*100;
+  let peak=Math.max(settings.maxMove*100,...rateDecisions(baseline.CR).slice(1).map(v=>Math.abs(v.bp)));
   if(target)for(const m of METHODS)for(let t=1;t<data.quarters.length;t++)for(const a of [baseline.CR[t],target[m].CR[t]])for(const b of [baseline.CR[t-1],target[m].CR[t-1]])peak=Math.max(peak,Math.abs(a-b)*100);
-  const limit=Math.max(25,Math.ceil(peak/25)*25),x=t=>L+12+t/(data.quarters.length-1)*(w-24),y=v=>T+(limit-v)/(limit*2)*h;
+  const limit=Math.max(25,Math.ceil(peak/25)*25),x=t=>L+18+t/(data.quarters.length-1)*(w-36),y=v=>T+(limit-v)/(limit*2)*h;
   let axes='';const step=limit<=100?25:50;
   for(let bp=-limit;bp<=limit;bp+=step)axes+=`<line class="${bp===0?'zero':'grid'}" x1="${L}" x2="${W-R}" y1="${y(bp)}" y2="${y(bp)}"/><text x="${L-7}" y="${y(bp)+4}" text-anchor="end">${bp>0?'+':''}${bp}</text>`;
   axes+=xTicks(x,T,h,H);
   $('#decision-chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Quarterly cash-rate changes in basis points">${axes}<g id="decision-bars"></g><rect class="frame" x="${L}" y="${T}" width="${w}" height="${h}"/></svg>`;
   charts.decisions={x,y};
 }
+const decisionName=m=>m==='baseline'?'RBA baseline':METHOD_NAMES[m];
 function decisionTable(r){
-  $('#decision-table').innerHTML='<thead><tr><th scope="col">Decision</th>'+data.quarters.slice(1).map(q=>`<th scope="col">${q}</th>`).join('')+'</tr></thead><tbody>'+METHODS.map(m=>{
-    const moves=r?rateDecisions(r[m].CR).slice(1):Array(10).fill(null);
-    return `<tr class="${m}-decisions"><th scope="row">${METHOD_NAMES[m]} · bp</th>`+moves.map(v=>`<td>${bpLabel(v?.bp)}</td>`).join('')+`</tr><tr class="equivalent-row ${m}-decisions"><th scope="row">25 bp equivalents</th>`+moves.map(v=>`<td>${moveLabel(v?.bp)}</td>`).join('')+'</tr>';
+  $('#decision-table').innerHTML='<thead><tr><th scope="col">Decision</th>'+data.quarters.slice(1).map(q=>`<th scope="col">${q}</th>`).join('')+'</tr></thead><tbody>'+['baseline',...METHODS].map(m=>{
+    const rates=m==='baseline'?baseline.CR:r?.[m].CR;
+    const moves=rates?rateDecisions(rates).slice(1):data.quarters.slice(1).map(()=>null);
+    return `<tr class="${m}-decisions"><th scope="row">${decisionName(m)} · bp</th>`+moves.map(v=>`<td>${bpLabel(v?.bp)}</td>`).join('')+`</tr><tr class="equivalent-row ${m}-decisions"><th scope="row">25 bp equivalents</th>`+moves.map(v=>`<td>${moveLabel(v?.bp)}</td>`).join('')+'</tr>';
   }).join('')+'</tbody>';
 }
 function drawDecisions(r,show){
   const {x,y}=charts.decisions;
-  $('#decision-bars').innerHTML=show?METHODS.map((m,mi)=>rateDecisions(r[m].CR).slice(1).map((v,t)=>`<rect class="${m}-bar" x="${x(t+1)+(mi?2:-11)}" y="${Math.min(y(0),y(v.bp))}" width="9" height="${Math.max(.7,Math.abs(y(v.bp)-y(0)))}"><title>${data.quarters[t+1]} · ${METHOD_NAMES[m]}: ${bpLabel(v.bp)} bp · ${moveLabel(v.bp)}</title></rect>`).join('')).join(''):'';
+  $('#decision-bars').innerHTML=['baseline',...(show?METHODS:[])].map((m,mi)=>rateDecisions(m==='baseline'?baseline.CR:r[m].CR).slice(1).map((v,t)=>`<rect class="${m}-bar" data-quarter="${t+1}" x="${x(t+1)-15+mi*11}" y="${Math.min(y(0),y(v.bp))}" width="9" height="${Math.max(.7,Math.abs(y(v.bp)-y(0)))}"><title>${data.quarters[t+1]} · ${decisionName(m)}: ${bpLabel(v.bp)} bp · ${moveLabel(v.bp)}</title></rect>`).join('')).join('');
   decisionTable(show?r:null);
 }
 function draw(r,show=true,phase=1){

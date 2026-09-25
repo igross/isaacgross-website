@@ -38,10 +38,10 @@ export function comparisonCSV(data,results,settings,market){
     ['Market quote date',market?.quoteDate??'Unavailable'],['Market source',MARKET_URL],['Market definition','Monthly futures-implied average, not extrapolated'],
     ['Move definition','Continuous rate changes divided by 0.25pp; equivalents, not counts of discrete decisions'],
     ['Rule coefficients: inertia, inflation, unemployment, momentum',...results.rule.coefficients],
-    ['Quarter','RBA cash rate (%)','Market (%)','Quarterly-path cash rate (%)','Rule cash rate (%)','Quarterly-path change (bp)','Rule change (bp)','Quarterly-path 25bp equivalents','Rule 25bp equivalents',
+    ['Quarter','RBA cash rate (%)','Market (%)','Quarterly-path cash rate (%)','Rule cash rate (%)','RBA baseline change (bp)','Quarterly-path change (bp)','Rule change (bp)','RBA baseline 25bp equivalents','Quarterly-path 25bp equivalents','Rule 25bp equivalents',
     'RBA trimmed mean (%)','Quarterly-path trimmed mean (%)','Rule trimmed mean (%)','RBA unemployment (%)','Quarterly-path unemployment (%)','Rule unemployment (%)','Baseline loss','Quarterly-path loss','Rule loss']];
-  const pathMoves=rateDecisions(results.path.CR),ruleMoves=rateDecisions(results.rule.CR);
-  data.quarters.forEach((q,t)=>rows.push([q,data.baseline.CR[t],market?.quarterly[t]??null,results.path.CR[t],results.rule.CR[t],pathMoves[t]?.bp,ruleMoves[t]?.bp,pathMoves[t]?.moves,ruleMoves[t]?.moves,
+  const baselineMoves=rateDecisions(data.baseline.CR),pathMoves=rateDecisions(results.path.CR),ruleMoves=rateDecisions(results.rule.CR);
+  data.quarters.forEach((q,t)=>rows.push([q,data.baseline.CR[t],market?.quarterly[t]??null,results.path.CR[t],results.rule.CR[t],baselineMoves[t]?.bp,pathMoves[t]?.bp,ruleMoves[t]?.bp,baselineMoves[t]?.moves,pathMoves[t]?.moves,ruleMoves[t]?.moves,
     data.baseline.TMI[t],results.path.TMI[t],results.rule.TMI[t],data.baseline.UR[t],results.path.UR[t],results.rule.UR[t],t?baselineLoss[t-1]:null,t?results.path.loss[t-1]:null,t?results.rule.loss[t-1]:null]));
   return rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
 }
