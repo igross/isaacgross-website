@@ -13,7 +13,7 @@
 .uncertainty-note{border-block:1px solid var(--line);margin:24px 0;padding:12px 0}.uncertainty-note summary{cursor:pointer;font-weight:600;padding:8px 0}.uncertainty-note p{font-size:.85rem;max-width:100ch;color:var(--muted)}
 
 /* Consistent semantic colours in charts, legend, controls and model selector. */
-:root{--scenario:#b52b32;--forecast:#155c3b;--scenario-fill:#b52b320b}
+:root{--scenario:#b52b32;--forecast:#111;--scenario-fill:#b52b320b}
 :root[data-model=dsge]{--scenario:#245bc2;--scenario-fill:#245bc20b}
 .chart .baseline{stroke:var(--forecast);stroke-dasharray:5 4}.chart .baseline-dot{stroke:var(--forecast)}
 .chart .actual-dot{fill:#111;stroke:#111;stroke-width:2}.chart .zero-reference{stroke:#8d9ca8}
