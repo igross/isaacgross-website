@@ -52,7 +52,7 @@ function plot(base,path,labels,published,title,{native=false,domain=null,histori
 function update(){
   result=scenario(data,model,amounts);
   const active=Object.values(amounts).filter(v=>v!==0).length;
-  $('scenario-status').textContent=notice||(active?`${active} ${active===1?'shock':'shocks'} applied from September 2026.`:'No additional shocks. The mapped scenario follows the RBA baseline.');
+  $('scenario-status').textContent=notice||(active?`${active} ${active===1?'shock':'shocks'} applied from September 2026.`:'RBA baseline · no shocks');
   $('empty-shocks').hidden=Object.keys(amounts).length>0;
   $('variable-count').textContent=`(${selected.size} selected)`;
   $('chart-grid').innerHTML=[...selected].map(key=>[key,data.baseline[key]]).map(([key,b])=>{
@@ -61,7 +61,7 @@ function update(){
     const last=s.values.at(-1),delta=s.delta.at(-1);
     const units=['TWI','Crude'].includes(key)?(key==='TWI'?'index points':'US$/bbl'):'pp';
     const headline=s.covered?`${number(last)}<small><span class="diff">${signed(delta)} ${units}</span> vs baseline</small>`:`${number(b.values.at(-1))}<small>baseline only</small>`;
-    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)} · December 2028: <span class="sr-only">final value</span></p><p class="chart-end">${headline}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Scenario extends beyond the fixed scale. Full values are available in “View the numbers” and the download.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>Source through June 2027; dashed extension holds 4.89% constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%<br>Headline CPI target shown as a reference for trimmed mean.</p>':''}${model.mappingNotes[key]?`<p class="mapping-note">${safe(model.mappingNotes[key])}</p>`:''}</article>`;
+    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)} · December 2028: <span class="sr-only">final value</span></p><p class="chart-end">${headline}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>Dashed: held at 4.89% after June 2027.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}</p></details>`:''}</article>`;
   }).join('');
   $('scenario-table').innerHTML='<thead><tr><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+Object.entries(result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.published[t]?'Published':'Interpolated'}</td></tr>`)).join('')+'</tbody>';
 }
@@ -79,7 +79,7 @@ function example(p){
 
 function renderShocks(){
   $('download').disabled=false;
-  $('shock-list').innerHTML=Object.keys(amounts).map(id=>{const s=model.shocks.find(s=>s.id===id),limit=shockLimit(s);return `<div class="shock" data-shock="${id}"><div class="shock-head"><label for="amount-${id}">${safe(s.name)}</label><button class="quiet remove-shock" data-remove="${id}" aria-label="Remove ${safe(s.name)}">×</button></div><div class="shock-unit">${safe(s.unit)}</div><p class="shock-size-note">${safe(s.sizeDescription||'')}</p><div class="shock-fields"><input aria-label="${safe(s.name)} slider" type="range" min="${-limit}" max="${limit}" step="${limit<1?.01:.05}" value="${amounts[id]*(s.displayFactor||1)}" data-range="${id}"><input id="amount-${id}" aria-label="${safe(s.name)} amount in ${safe(s.unit)}" type="number" min="${-limit}" max="${limit}" step="any" value="${Number((amounts[id]*(s.displayFactor||1)).toFixed(4))}" data-number="${id}"></div></div>`;}).join('');
+  $('shock-list').innerHTML=Object.keys(amounts).map(id=>{const s=model.shocks.find(s=>s.id===id),limit=shockLimit(s);return `<div class="shock" data-shock="${id}"><div class="shock-head"><label for="amount-${id}">${safe(s.name)}</label><button class="quiet remove-shock" data-remove="${id}" aria-label="Remove ${safe(s.name)}">×</button></div><div class="shock-unit">${safe(s.unit)}</div><details class="shock-size-note"><summary>${s.sizeDescription?.includes('quarterly')?'Quarterly change · details':'Size definition'}</summary><p>${safe(s.sizeDescription||'')}</p></details><div class="shock-fields"><input aria-label="${safe(s.name)} slider" type="range" min="${-limit}" max="${limit}" step="${limit<1?.01:.05}" value="${amounts[id]*(s.displayFactor||1)}" data-range="${id}"><input id="amount-${id}" aria-label="${safe(s.name)} amount in ${safe(s.unit)}" type="number" min="${-limit}" max="${limit}" step="any" value="${Number((amounts[id]*(s.displayFactor||1)).toFixed(4))}" data-number="${id}"></div></div>`;}).join('');
   $('shock-list').querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>{delete amounts[b.dataset.remove];notice='';renderShocks();update();}));
   $('shock-list').querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>{
     const id=input.dataset.range||input.dataset.number,value=Number(input.value),limit=shockLimit(model.shocks.find(s=>s.id===id));
@@ -93,7 +93,7 @@ function renderShocks(){
 
 function chooseModel(id){
   if(id===model.id)return;
-  model=data.models.find(m=>m.id===id);amounts={};notice='Model changed; shocks reset because the model definitions and units differ.';
+  model=data.models.find(m=>m.id===id);amounts={};notice='Model changed · shocks reset.';
   modelUI();variableUI();renderShocks();update();
   if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
     $('chart-grid').animate([{opacity:.25,transform:'translateY(9px)'},{opacity:1,transform:'translateY(0)'}],{duration:360,easing:'ease-out'});
@@ -125,7 +125,7 @@ function modelUI(){
   $('shock-select').innerHTML=shocks.map(s=>`<option value="${s.id}" ${s.active?'':'disabled'}>${safe(s.name)}${s.active?'':' — inactive'}</option>`).join('');
   $('presets').innerHTML=model.presets.map((p,i)=>p.shock==='cash_rate_4q'?'':`<button data-preset="${i}">${safe(example(p).name)}</button>`).join('');
   $('presets').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-    const p=example(model.presets[Number(b.dataset.preset)]);amounts={[p.shock]:p.amount};notice=`Example: ${p.name.toLowerCase()}. Previous shocks replaced.`;renderShocks();update();
+    const p=example(model.presets[Number(b.dataset.preset)]);amounts={[p.shock]:p.amount};notice=`Example: ${p.name.toLowerCase()}. `;renderShocks();update();
   }));
 }
 
