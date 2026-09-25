@@ -102,7 +102,7 @@ function modelUI(){
   const ranked=['ncr','cash_rate_4q','rc','gc','gi','ph','wpcom','wpoil','rtwi','ptm','eps_r','eps_p_star_z','eps_psi','eps_g','eps_xi_c','eps_mu','eps_upsilon_h'];
   const shocks=[...model.shocks].sort((a,b)=>(ranked.includes(a.id)?ranked.indexOf(a.id):100)-(ranked.includes(b.id)?ranked.indexOf(b.id):100));
   $('shock-select').innerHTML=shocks.map(s=>`<option value="${s.id}" ${s.active?'':'disabled'}>${safe(s.name)}${s.active?'':' — inactive'}</option>`).join('');
-  $('presets').innerHTML=model.presets.map((p,i)=>`<button data-preset="${i}">${safe(p.name)}</button>`).join('');
+  $('presets').innerHTML=model.presets.map((p,i)=>p.shock==='cash_rate_4q'?'':`<button data-preset="${i}">${safe(p.name)}</button>`).join('');
   $('presets').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
     const p=model.presets[Number(b.dataset.preset)];amounts={[p.shock]:p.amount};notice=`Example: ${p.name.toLowerCase()}. Previous shocks replaced.`;renderShocks();update();
   }));
