@@ -26,3 +26,5 @@
 .shock-size-note{font-size:.7rem;line-height:1.4;color:var(--muted);margin:0 0 8px}
 
 .chart .baseline{stroke-dasharray:none}.legend .base-line{border-top-style:solid}
+
+.chart .target-band{fill:#e7eee8}.chart .target-midpoint{stroke:#647b69;stroke-width:1.5;stroke-dasharray:4 3}.chart .nairu-line{fill:none;stroke:#a46a16;stroke-width:2}.chart .nairu-extension{stroke-dasharray:5 4}.chart .nairu-dot{fill:#a46a16}.reference-key{font-size:.7rem;color:var(--muted);line-height:1.6;margin:7px 0}.reference-key i{display:inline-block;width:20px;margin-right:5px;vertical-align:middle}.nairu-swatch{border-top:2px solid #a46a16}.target-swatch{height:10px;background:#e7eee8;border-bottom:1px dashed #647b69}

@@ -4,10 +4,10 @@ const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
 const signed=v=>(v>0?'+':'')+number(v);
-let scales,plotId=0,data,model,amounts={},result,notice='',selected=new Set(['RGDP','TMI','UR','CR','RHFCE','RDI']);
+let references,scales,plotId=0,data,model,amounts={},result,notice='',selected=new Set(['RGDP','TMI','UR','CR','RHFCE','RDI']);
 const rawCache={};let explorerVersion=0;
 
-function plot(base,path,labels,published,title,{native=false,domain=null,historical=false}={}){
+function plot(base,path,labels,published,title,{native=false,domain=null,historical=false,variable=null}={}){
   const columns=innerWidth<=540?1:2;
   const cardWidth=($('chart-grid').clientWidth-(columns-1)*(innerWidth<=1100?12:18))/columns;
   const width=native?600:Math.max(210,cardWidth-(innerWidth<=540?38:innerWidth<=1100?26:34));
@@ -22,6 +22,10 @@ function plot(base,path,labels,published,title,{native=false,domain=null,histori
   const pathD=a=>a.map((v,i)=>Number.isFinite(v)?`${i===0||!Number.isFinite(a[i-1])?'M':'L'}${x(i).toFixed(2)},${y(v).toFixed(2)}`:'').join(' ');
   const tick=v=>Math.abs(v)<.001&&v!==0?v.toExponential(1):v.toLocaleString('en-AU',{maximumFractionDigits:6});
   let content='';
+  if(variable==='TMI'){
+    const t=references.inflationTarget;
+    content+=`<rect class="target-band" x="${left}" y="${y(t.upper)}" width="${width-left-right}" height="${y(t.lower)-y(t.upper)}"><title>Inflation target range: 2–3%</title></rect><line class="target-midpoint" x1="${left}" x2="${width-right}" y1="${y(t.midpoint)}" y2="${y(t.midpoint)}"><title>Target midpoint: 2.5%</title></line>`;
+  }
   for(const v of axisTicks(lo,hi)){content+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${tick(v)}</text>`;}
   const ticks=[0,Math.floor((labels.length-1)/2),labels.length-1];
   ticks.forEach(i=>{content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(labels[i])}</text>`;});
@@ -35,6 +39,12 @@ function plot(base,path,labels,published,title,{native=false,domain=null,histori
     content+=`<circle class="baseline-dot ${actual?'actual-dot':''}" cx="${x(i)}" cy="${y(base[i])}" r="3"><title>${safe(label)}: ${actual?'actual':native?'zero reference':'RBA forecast'} ${number(base[i],3)}</title></circle>`;
     if(changed&&Number.isFinite(path[i])&&(native||i>=data.shockStart))content+=`<circle tabindex="0" role="img" aria-label="${safe(title)}, ${safe(label)}: ${number(path[i],3)}; baseline ${number(base[i],3)}" class="scenario-dot" cx="${x(i)}" cy="${y(path[i])}" r="3.7"><title>${safe(label)}: scenario ${number(path[i],3)}; baseline ${number(base[i],3)}</title></circle>`;
   });
+  if(variable==='UR'){
+    const n=references.nairu,first=n.extrapolated.indexOf(true);
+    content+=`<path class="nairu-line" d="${pathD(n.values.map((v,i)=>n.extrapolated[i]?null:v))}"/>`;
+    if(first>=0)content+=`<path class="nairu-line nairu-extension" d="${pathD(n.values.map((v,i)=>i>=first-1?v:null))}"/>`;
+    n.values.forEach((v,i)=>{content+=`<circle class="nairu-dot" cx="${x(i)}" cy="${y(v)}" r="2.5"><title>${safe(labels[i])}: baseline NAIRU ${number(v,3)}%${n.extrapolated[i]?' (held constant)':''}</title></circle>`;});
+  }
   content+='</g>';
   return `<svg data-y-min="${lo}" data-y-max="${hi}" class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${safe(title)}"><title>${safe(title)}</title>${content}</svg>`;
 }
@@ -51,7 +61,7 @@ function update(){
     const last=s.values.at(-1),delta=s.delta.at(-1);
     const units=['TWI','Crude'].includes(key)?(key==='TWI'?'index points':'US$/bbl'):'pp';
     const headline=s.covered?`${number(last)}<small><span class="diff">${signed(delta)} ${units}</span> vs baseline</small>`:`${number(b.values.at(-1))}<small>baseline only</small>`;
-    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)} · December 2028: <span class="sr-only">final value</span></p><p class="chart-end">${headline}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Scenario extends beyond the fixed scale. Full values are available in “View the numbers” and the download.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${model.mappingNotes[key]?`<p class="mapping-note">${safe(model.mappingNotes[key])}</p>`:''}</article>`;
+    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)} · December 2028: <span class="sr-only">final value</span></p><p class="chart-end">${headline}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key})}${s.values.some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Scenario extends beyond the fixed scale. Full values are available in “View the numbers” and the download.</p>':''}${!s.covered?'<p class="coverage">Shock response unavailable in this model. The grey line is the RBA baseline.</p>':''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>Source through June 2027; dashed extension holds 4.89% constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%<br>Headline CPI target shown as a reference for trimmed mean.</p>':''}${model.mappingNotes[key]?`<p class="mapping-note">${safe(model.mappingNotes[key])}</p>`:''}</article>`;
   }).join('');
   $('scenario-table').innerHTML='<thead><tr><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+Object.entries(result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.published[t]?'Published':'Interpolated'}</td></tr>`)).join('')+'</tbody>';
 }
@@ -145,7 +155,9 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json?v=smaller-shocks');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();scales=fixedScales(data);model=data.models[0];
+  const r=await fetch('assets/scenarios.json?v=smaller-shocks');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();scales=fixedScales(data);
+  scales.UR=[Math.min(scales.UR[0],Math.floor(Math.min(...references.nairu.values)*2)/2),Math.max(scales.UR[1],Math.ceil(Math.max(...references.nairu.values)*2)/2)];
+  scales.TMI=[Math.min(scales.TMI[0],2),Math.max(scales.TMI[1],3)];model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
   $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}const s=model.shocks.find(s=>s.id===id);amounts[id]=(shockLimit(s)<1?.1:s.unit==='percentage points'?.25:1)/(s.displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
