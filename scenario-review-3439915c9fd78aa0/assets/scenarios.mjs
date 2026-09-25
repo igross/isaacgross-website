@@ -74,7 +74,7 @@ function chooseModel(id){
 function modelUI(){
   const host=$('model-buttons');
   if(!host.children.length){
-    host.innerHTML='<span class="model-glider" aria-hidden="true"></span>'+data.models.map(m=>`<button data-model="${m.id}" aria-pressed="false"><strong>${m.id==='martin'?'MARTIN':'DINGO predecessor'}</strong><small>${m.id==='martin'?'Macroeconometric · 2019':'Housing DSGE · 2018'}</small></button>`).join('');
+    host.innerHTML='<span class="model-glider" aria-hidden="true"></span>'+data.models.map(m=>`<button data-model="${m.id}" aria-pressed="false"><strong>${m.id==='martin'?'MARTIN':'DINGO'}</strong></button>`).join('');
     let swiped=false;
     host.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(swiped){swiped=false;return;}chooseModel(b.dataset.model);}));
     host.addEventListener('keydown',e=>{
