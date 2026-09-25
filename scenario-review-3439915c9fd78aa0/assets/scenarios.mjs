@@ -1,5 +1,5 @@
 import {scenario,csv} from './scenario-engine.mjs';
-import {fixedScales} from './scenario-scales.mjs';
+import {fixedScales,axisTicks} from './scenario-scales.mjs?v=2';
 const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -20,9 +20,9 @@ function plot(base,path,labels,published,title,{native=false,domain=null,histori
   const x=i=>left+i*(width-left-right)/(labels.length-1);
   const y=v=>top+(hi-v)/(hi-lo)*(height-top-bottom);
   const pathD=a=>a.map((v,i)=>Number.isFinite(v)?`${i===0||!Number.isFinite(a[i-1])?'M':'L'}${x(i).toFixed(2)},${y(v).toFixed(2)}`:'').join(' ');
-  const tick=v=>Math.abs(v)<.001&&v!==0?v.toExponential(1):number(v,hi-lo<1?2:1);
+  const tick=v=>Math.abs(v)<.001&&v!==0?v.toExponential(1):v.toLocaleString('en-AU',{maximumFractionDigits:6});
   let content='';
-  for(let i=0;i<4;i++){const v=lo+(hi-lo)*i/3;content+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${tick(v)}</text>`;}
+  for(const v of axisTicks(lo,hi)){content+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${tick(v)}</text>`;}
   const ticks=[0,Math.floor((labels.length-1)/2),labels.length-1];
   ticks.forEach(i=>{content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(labels[i])}</text>`;});
   content+=`<defs><clipPath id="${clipId}"><rect x="${left}" y="${top}" width="${width-left-right}" height="${height-top-bottom}"/></clipPath></defs><g clip-path="url(#${clipId})">`;

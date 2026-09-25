@@ -16,3 +16,12 @@ export function fixedScales(data) {
     return [key,[Math.floor((lo-pad)/step)*step,Math.ceil((hi+pad)/step)*step]];
   }));
 }
+
+export function axisTicks(lo,hi) {
+  const target=(hi-lo)/4;
+  const power=10**Math.floor(Math.log10(target));
+  const step=[1,2,2.5,5,10].map(v=>v*power).find(v=>v>=target);
+  const ticks=[];
+  for(let i=Math.ceil(lo/step-1e-9);i<=Math.floor(hi/step+1e-9);i++)ticks.push(Number((i*step).toPrecision(12)));
+  return ticks;
+}
