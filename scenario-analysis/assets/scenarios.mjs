@@ -5,13 +5,13 @@ const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
 const signed=v=>(v>0?'+':'')+number(v);
-let references,scales,plotId=0,data,model,amounts={},result,peer,peerResult,notice='',selected=new Set(['RGDP','GDPPC','TMI','UR','CR','RHFCE','RDI']);
+let shockPaths,references,scales,plotId=0,data,model,amounts={},result,peer,peerResult,notice='',selected=new Set(['RGDP','GDPPC','TMI','UR','CR','RHFCE','RDI']);
 const rawCache={};let explorerVersion=0;
 
-function plot(base,path,labels,published,title,{native=false,domain=null,historical=false,variable=null,otherPath=null}={}){
+function plot(base,path,labels,published,title,{native=false,responsive=false,domain=null,historical=false,variable=null,otherPath=null}={}){
   const columns=innerWidth<=540?1:2;
   const cardWidth=($('chart-grid').clientWidth-(columns-1)*(innerWidth<=1100?12:18))/columns;
-  const width=native?600:Math.max(210,cardWidth-(innerWidth<=540?38:innerWidth<=1100?26:34));
+  const width=native&&!responsive?600:Math.max(210,cardWidth-(innerWidth<=540?38:innerWidth<=1100?26:34));
   const height=224,left=43,right=12,top=18,bottom=38;
   const vals=[...base,...path].filter(Number.isFinite);
   let lo=Math.min(...vals),hi=Math.max(...vals);
@@ -49,6 +49,33 @@ function plot(base,path,labels,published,title,{native=false,domain=null,histori
   return `<svg data-y-min="${lo}" data-y-max="${hi}" class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${safe(title)}"><title>${safe(title)}</title>${content}</svg>`;
 }
 
+function shockPath(entry, values){
+  return data.quarters.map((_,t)=>t<data.shockStart?0:Object.entries(values).reduce((sum,[id,amount])=>sum+amount*(entry.responses[id]?.[t-data.shockStart]||0),0));
+}
+function shockRows(){
+  const rows=[];
+  for(const id of Object.keys(amounts)){
+    const entry=shockPaths[model.id][id];if(entry.forecast)continue;
+    const paths=[{name:model.id==='martin'?'MARTIN':'DINGO',entry,amounts}];
+    const other=peer&&Object.keys(peer.amounts).map(key=>shockPaths[peer.model.id][key]).find(e=>e.name===entry.name&&e.responses);
+    if(other)paths.push({name:peer.model.id==='martin'?'MARTIN':'DINGO',entry:other,amounts:peer.amounts});
+    for(const item of paths)shockPath(item.entry,item.amounts).forEach((value,t)=>rows.push([item.name,entry.name,data.quarters[t],entry.unit,value]));
+  }
+  return rows;
+}
+function shockCSV(){
+  return '\r\n\r\n'+[['Model','Shocked variable','Quarter','Unit (change from model baseline)','Response'],...shockRows()].map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');
+}
+function shockCharts(){
+  return Object.keys(amounts).filter(id=>!shockPaths[model.id][id].forecast).map(id=>{
+    const entry=shockPaths[model.id][id],path=shockPath(entry,amounts);
+    const peerEntry=peer&&Object.keys(peer.amounts).map(key=>shockPaths[peer.model.id][key]).find(e=>e.name===entry.name&&e.responses);
+    const otherPath=peerEntry?shockPath(peerEntry,peer.amounts):null;
+    const limit=shockLimit(model.shocks.find(s=>s.id===id))*1.2;
+    const domain=[-limit,limit];
+    return `<article class="chart-card" data-shock-path="${id}"><h3>${safe(entry.name)}</h3><p class="chart-unit">${safe(entry.unit)} change from model baseline</p>${plot(path.map(()=>0),path,data.quarters,data.published,entry.name,{native:true,responsive:true,domain,otherPath})}<p class="coverage">Model response · no RBA forecast${[...path,...(otherPath||[])].some(v=>Math.abs(v)>limit)?' · beyond chart range':''}</p></article>`;
+  }).join('');
+}
 function update(){
   result=scenario(data,model,amounts);
   peer=comparison(data,model,amounts);peerResult=peer?scenario(data,peer.model,peer.amounts):null;
@@ -56,14 +83,18 @@ function update(){
   $('scenario-status').textContent=notice||(active?`${active} ${active===1?'shock':'shocks'} applied from September 2026.`:'RBA baseline · no shocks');
   if(peer)$('scenario-status').textContent='MARTIN + DINGO · matched shock sizes';
   $('empty-shocks').hidden=Object.keys(amounts).length>0;
-  $('variable-count').textContent=`(${selected.size} selected)`;
-  $('chart-grid').innerHTML=[...selected].map(key=>[key,data.baseline[key]]).map(([key,b])=>{
+  const automatic=new Set(Object.keys(amounts).map(id=>shockPaths[model.id][id].forecast).filter(Boolean));
+  const visible=new Set([...selected,...automatic]);
+  $('variable-options').querySelectorAll('input').forEach(input=>{input.checked=visible.has(input.value);input.disabled=automatic.has(input.value);});
+  $('variable-count').textContent=`(${visible.size} selected)`;
+  $('chart-grid').innerHTML=shockCharts()+[...visible].map(key=>[key,data.baseline[key]]).map(([key,b])=>{
     const s=result[key],other=peerResult?.[key];
     if(!s.covered&&!other?.covered)return `<article class="chart-card unmodeled" data-variable="${key}"><h3>${safe(b.name)} <span>(variable not modeled)</span></h3></article>`;
     return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key,otherPath:other?.covered?other.values:null})}${[...s.values,...(other?.values||[])].some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${peer&&(!s.covered||!other?.covered)?`<p class="coverage">${!s.covered?model.id==='dsge'?'DINGO':'MARTIN':peer.model.id==='dsge'?'DINGO':'MARTIN'}: variable not modeled.</p>`:''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}${peer?.model.mappingNotes[key]?'<br>'+safe(peer.model.mappingNotes[key]):''}</p></details>`:''}</article>`;
   }).join('');
   const outputs=[{model,result},...(peer?[{model:peer.model,result:peerResult}]:[])];
-  $('scenario-table').innerHTML='<thead><tr><th>Model</th><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+outputs.flatMap(o=>Object.entries(o.result).filter(([key])=>selected.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${o.model.id==='martin'?'MARTIN':'DINGO'}</td><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.baseline[key].derived?'Derived':data.published[t]?'Published':'Interpolated'}</td></tr>`))).join('')+'</tbody>';
+  $('scenario-table').innerHTML='<thead><tr><th>Model</th><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+outputs.flatMap(o=>Object.entries(o.result).filter(([key])=>visible.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${o.model.id==='martin'?'MARTIN':'DINGO'}</td><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.baseline[key].derived?'Derived':data.published[t]?'Published':'Interpolated'}</td></tr>`))).join('')+'</tbody>';
+  $('scenario-table').querySelector('tbody').insertAdjacentHTML('beforeend',shockRows().map(([name,variable,quarter,unit,value])=>`<tr><td>${safe(name)}</td><td>${safe(variable)} (${safe(unit)})</td><td>${safe(quarter)}</td><td>—</td><td>${number(value)}</td><td>—</td><td>Model deviation</td></tr>`).join(''));
 
 }
 
@@ -156,14 +187,14 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json?v=per-capita');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();scales=fixedScales(data);
+  const r=await fetch('assets/scenarios.json?v=per-capita');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();const shocks=await fetch('assets/shock-paths.json');if(!shocks.ok)throw new Error('Could not load shock paths.');shockPaths=await shocks.json();scales=fixedScales(data);
   scales.UR=[Math.min(scales.UR[0],Math.floor(Math.min(...references.nairu.values)*2)/2),Math.max(scales.UR[1],Math.ceil(Math.max(...references.nairu.values)*2)/2)];
   scales.TMI=[Math.min(scales.TMI[0],2),Math.max(scales.TMI[1],3)];model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
   $('add-shock').addEventListener('click',()=>{const id=$('shock-select').value;if(id in amounts){$(`amount-${id}`).focus();return;}const s=model.shocks.find(s=>s.id===id);amounts[id]=(shockLimit(s)<1?.1:s.unit==='percentage points'?.25:1)/(s.displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
   $('all-variables').addEventListener('click',()=>{selected=new Set(Object.keys(data.baseline));variableUI();update();});
-  $('download').addEventListener('click',()=>{const blob=new Blob([csv(data,model,result,amounts)+(peer?'\r\n\r\n'+csv(data,peer.model,peerResult,peer.amounts):'')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`australian-scenario-${model.id}-aug2026.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+  $('download').addEventListener('click',()=>{const blob=new Blob([csv(data,model,result,amounts)+(peer?'\r\n\r\n'+csv(data,peer.model,peerResult,peer.amounts):'')+shockCSV()],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`australian-scenario-${model.id}-aug2026.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
   $('explorer').addEventListener('toggle',()=>{if($('explorer').open)loadExplorer();});
   $('explorer-shock').addEventListener('change',explorerPlot);$('explorer-variable').addEventListener('change',explorerPlot);
   let resizeFrame;
