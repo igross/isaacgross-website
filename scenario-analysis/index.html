@@ -16,7 +16,7 @@ window.addEventListener('DOMContentLoaded', function () {
   }, 15000);
 });
 </script>
-<script type="module" src="assets/scenarios.mjs?v=25"></script></head>
+<script type="module" src="assets/scenarios.mjs?v=26"></script></head>
 <body><a class="skip" href="#main">Skip to content</a>
 <header class="site-header wrap"><a class="wordmark" href="https://isaacgross.net/">Isaac Gross<span>Economist</span></a><nav aria-label="Main navigation"><a href="/">Home</a><a href="/research/">Research</a><a href="/in-the-news/">In the News</a><a href="/teaching/">Teaching</a><a href="/australian-economic-analysis/" aria-current="location">Australian Economic Analysis</a><a href="https://gross.substack.com/">Substack</a></nav></header>
 <main id="main" class="wrap">
@@ -36,6 +36,8 @@ window.addEventListener('DOMContentLoaded', function () {
 <p id="scenario-status" class="status" role="status" aria-live="polite"></p>
 <details class="variable-picker"><summary>Choose variables <span id="variable-count"></span></summary><div id="variable-options"></div><button id="all-variables" class="quiet">Show all 27</button></details>
 <div id="chart-grid" class="chart-grid"></div>
+<div class="variable-picker"><label for="extra-martin-variable">Additional MARTIN variable</label><select id="extra-martin-variable"><option value="">None</option></select></div>
+<div id="extra-martin-chart" class="chart-grid" aria-live="polite"></div>
 <details class="number-table"><summary>View the numbers</summary><div class="table-scroll"><table id="scenario-table"></table></div></details>
 </section></div>
 <section class="method-section"><h2>What’s behind the scenarios?</h2><p>Scenarios add model responses to the RBA baseline. Common policy, commodity-price, exchange-rate and foreign-demand shocks show both models.</p>

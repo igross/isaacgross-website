@@ -8,7 +8,7 @@ const signed=v=>(v>0?'+':'')+number(v);
 let shockPaths,references,scales,plotId=0,data,model,amounts={},result,peer,peerResult,notice='',selected=new Set(['RGDP','GDPPC','TMI','UR','CR','RHFCE','RDI']);
 const rawCache={};let explorerVersion=0;
 
-function plot(base,path,labels,published,title,{native=false,responsive=false,domain=null,historical=false,variable=null,otherPath=null}={}){
+function plot(base,path,labels,published,title,{native=false,responsive=false,domain=null,historical=false,variable=null,otherPath=null,lineModel=model.id}={}){
   const columns=innerWidth<=540?1:2;
   const cardWidth=($('chart-grid').clientWidth-(columns-1)*(innerWidth<=1100?12:18))/columns;
   const width=native&&!responsive?600:Math.max(210,cardWidth-(innerWidth<=540?38:innerWidth<=1100?26:34));
@@ -37,7 +37,7 @@ function plot(base,path,labels,published,title,{native=false,responsive=false,do
   if(!otherPath&&path.every(Number.isFinite))content+=`<path class="area" d="${pathD(path)} ${base.map((v,j)=>{const i=base.length-1-j;return `L${x(i)},${y(base[i])}`;}).join(' ')} Z"/>`;
   const changed=native||path.some((v,i)=>Number.isFinite(v)&&Math.abs(v-base[i])>1e-10);
   content+=`<path class="baseline ${native?'zero-reference':''}" d="${pathD(base)}"/>`;
-  if(changed)content+=`<path class="scenario model-${model.id}" d="${pathD(path)}"><title>${model.id==='martin'?'MARTIN':'DINGO'}</title></path>`;
+  if(changed)content+=`<path class="scenario model-${lineModel}" d="${pathD(path)}"><title>${lineModel==='martin'?'MARTIN':'DINGO'}</title></path>`;
   if(otherPath)content+=`<path class="scenario model-${peer.model.id}" d="${pathD(otherPath)}"><title>${peer.model.id==='martin'?'MARTIN':'DINGO'}</title></path>`;
   labels.forEach((label,i)=>{if(!published[i])return;
     const actual=!native&&i===0&&historical;
@@ -96,6 +96,7 @@ function update(){
     if(!s.covered&&!other?.covered)return `<article class="chart-card unmodeled" data-variable="${key}"><h3>${safe(b.name)} <span>(variable not modeled)</span></h3></article>`;
     return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key,otherPath:other?.covered?other.values:null})}${[...s.values,...(other?.values||[])].some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${peer&&(!s.covered||!other?.covered)?`<p class="coverage">${!s.covered?model.id==='dsge'?'DINGO':'MARTIN':peer.model.id==='dsge'?'DINGO':'MARTIN'}: variable not modeled.</p>`:''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}${peer?.model.mappingNotes[key]?'<br>'+safe(peer.model.mappingNotes[key]):''}</p></details>`:''}</article>`;
   }).join('');
+  extraMartinChart();
   const outputs=[{model,result},...(peer?[{model:peer.model,result:peerResult}]:[])];
   $('scenario-table').innerHTML='<thead><tr><th>Model</th><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+outputs.flatMap(o=>Object.entries(o.result).filter(([key])=>visible.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${o.model.id==='martin'?'MARTIN':'DINGO'}</td><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.baseline[key].derived?'Derived':data.published[t]?'Published':'Interpolated'}</td></tr>`))).join('')+'</tbody>';
   $('scenario-table').querySelector('tbody').insertAdjacentHTML('beforeend',shockRows().map(([name,variable,quarter,unit,value])=>`<tr><td>${safe(name)}</td><td>${safe(variable)} (${safe(unit)})</td><td>${safe(quarter)}</td><td>—</td><td>${number(value)}</td><td>—</td><td>Model deviation</td></tr>`).join(''));
@@ -172,6 +173,26 @@ function variableUI(){
   $('variable-options').querySelectorAll('input').forEach(input=>input.addEventListener('change',()=>{input.checked?selected.add(input.value):selected.delete(input.value);update();}));
 }
 
+// Native IRFs use the same standard-deviation shock amounts as the scenario engine.
+function extraMartinChart(){
+  const variable=$('extra-martin-variable').value,host=$('extra-martin-chart');
+  host.innerHTML='';if(!variable)return;
+  const raw=rawCache.martin;
+  const title=$('extra-martin-variable').selectedOptions[0].textContent;
+  const martinAmounts=model.id==='martin'?amounts:peer?.model.id==='martin'?peer.amounts:null;
+  if(!martinAmounts){host.innerHTML=`<article class="chart-card unmodeled"><h3>${safe(title)} <span>(selected shocks not modeled by MARTIN)</span></h3></article>`;return;}
+  const path=data.quarters.map((_,t)=>t<data.shockStart?0:Object.entries(martinAmounts).reduce((sum,[id,amount])=>sum+amount*raw.responses[id][variable][t-data.shockStart],0));
+  host.innerHTML=`<article class="chart-card" data-extra-martin="${safe(variable)}"><h3>${safe(title)}</h3><p class="chart-unit">Native model units · change from model baseline</p>${plot(path.map(()=>0),path,data.quarters,data.quarters.map(()=>false),title,{native:true,responsive:true,lineModel:'martin'})}<p class="coverage">MARTIN · combined selected shocks · no RBA forecast</p></article>`;
+}
+async function extraMartinUI(){
+  try{
+    if(!rawCache.martin){const response=await fetch('assets/martin-all-irfs.json');if(!response.ok)throw Error('Could not load MARTIN variables.');rawCache.martin=await response.json();}
+    const raw=rawCache.martin,names={...Object.fromEntries(raw.shocks.map(s=>[s.id,s.name])),y:'Gross domestic product',ncr:'Cash rate',pi_ptm:'Trimmed mean inflation',pi_p:'Headline inflation',rc:'Household consumption',ib:'Business investment',g:'Public demand',x:'Exports',m:'Imports',tot:'Terms of trade'};
+    $('extra-martin-variable').innerHTML='<option value="">None</option>'+raw.variables.slice().sort((a,b)=>(names[a]||a).localeCompare(names[b]||b)).map(v=>`<option value="${safe(v)}">${safe(names[v]?`${names[v]} (${v})`:v)}</option>`).join('');
+    $('extra-martin-variable').addEventListener('change',extraMartinChart);
+  }catch(e){$('extra-martin-chart').textContent=e.message;}
+}
+
 async function loadExplorer(){
   const id=model.id,version=++explorerVersion;
   $('explorer-chart').textContent='Loading the full response matrix…';
@@ -196,7 +217,7 @@ try{
   const r=await fetch('assets/scenarios.json?v=dsge2026');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();const shocks=await fetch('assets/shock-paths.json?v=dsge2026');if(!shocks.ok)throw new Error('Could not load shock paths.');shockPaths=await shocks.json();scales=fixedScales(data);
   scales.UR=[Math.min(scales.UR[0],Math.floor(Math.min(...references.nairu.values)*2)/2),Math.max(scales.UR[1],Math.ceil(Math.max(...references.nairu.values)*2)/2)];
   scales.TMI=[Math.min(scales.TMI[0],2),Math.max(scales.TMI[1],3)];model=data.models[0];
-  $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();
+  $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();extraMartinUI();
   $('reset').addEventListener('click',()=>{amounts={};notice='';renderShocks();update();});
   $('add-shock').addEventListener('click',()=>{const id=resolveChoice($('shock-select').value);if(!id)return;if(id in amounts){$(`amount-${id}`).focus();return;}const s=model.shocks.find(s=>s.id===id);amounts[id]=(shockLimit(s)<1?.1:s.unit==='percentage points'?.25:1)/(s.displayFactor||1);notice='';renderShocks();update();$(`amount-${id}`).focus();});
   $('all-variables').addEventListener('click',()=>{selected=new Set(Object.keys(data.baseline));variableUI();update();});
