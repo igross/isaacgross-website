@@ -34,7 +34,7 @@ export function transitionRates(baseline,solution,progress,method){
 }
 export function comparisonCSV(data,results,settings,market){
   const baselineLoss=data.quarters.slice(1).map((_,t)=>settings.inflation*(data.baseline.TMI[t+1]-data.targets.inflation)**2+settings.unemployment*(data.baseline.UR[t+1]-data.targets.nairu)**2+settings.smoothing*(data.baseline.CR[t+1]-data.baseline.CR[t])**2);
-  const rows=[['Forecast vintage',data.vintage],['Baseline total loss',baselineLoss.reduce((a,b)=>a+b,0)],['Quarterly-path total loss',results.path.total],['Rule total loss',results.rule.total],...Object.entries(settings),['Inflation target',data.targets.inflation],['NAIRU',data.targets.nairu],
+  const rows=[['Forecast vintage',data.vintage],['Baseline total loss',baselineLoss.reduce((a,b)=>a+b,0)],['Quarterly-path total loss',results.path.total],['Rule total loss',results.rule.total],...Object.entries(settings),['Inflation target',data.targets.inflation],['Target unemployment rate (%)',data.targets.nairu],
     ['Market quote date',market?.quoteDate??'Unavailable'],['Market source',MARKET_URL],['Market definition','Monthly futures-implied average, not extrapolated'],
     ['Move definition','Continuous rate changes divided by 0.25pp; equivalents, not counts of discrete decisions'],
     ['Rule coefficients: inertia, inflation, unemployment, momentum',...results.rule.coefficients],
@@ -47,6 +47,6 @@ export function comparisonCSV(data,results,settings,market){
 }
 
 export function withNairu(data,value){
-  if(!Number.isFinite(value)||value<0||value>10)throw Error('NAIRU must be between 0% and 10%.');
+  if(!Number.isFinite(value)||value<0||value>10)throw Error('Target unemployment rate must be between 0% and 10%.');
   return {...data,targets:{...data.targets,nairu:value}};
 }

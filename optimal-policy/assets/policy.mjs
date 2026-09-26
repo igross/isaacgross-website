@@ -1,12 +1,12 @@
 import {DEFAULTS,validate,evaluate} from './policy-engine.mjs?v=2';
-import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,comparisonCSV,withNairu} from './policy-display.mjs?v=4';
+import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,comparisonCSV,withNairu} from './policy-display.mjs?v=5';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 let data,settings={...DEFAULTS},baseline,results,worker,job=0,animation,progress=0,paused=false,raf,charts={},domains={},market,marketRefresh=0,lastDraw=null;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const f=(x,n=2)=>Number(x).toFixed(n),parts=['inflation','unemployment','smoothing'];
 const names={CR:'Cash rate',TMI:'Trimmed mean inflation',UR:'Unemployment',LOSS:'Quarterly loss'};
 const units={CR:'%',TMI:'Year-ended %',UR:'%',LOSS:'Weighted squared percentage points'};
-function settingValues(){const v={...DEFAULTS};$$('[data-number]').forEach(e=>{if(!e.validity.valid)throw Error(`${e.getAttribute('aria-label')} must be between ${e.min} and ${e.max}, in steps of ${e.step}.`);v[e.dataset.number]=Number(e.value);});$$('[data-option]').forEach(e=>v[e.dataset.option]=e.value===''?NaN:Number(e.value));validate(v);const input=$('#nairu-setting');if(!input.validity.valid)throw Error('Enter a NAIRU between 0% and 10%.');const updated=withNairu(data,input.value===''?NaN:Number(input.value));data=updated;$('#nairu-value').textContent=f(data.targets.nairu)+'%';return v;}
+function settingValues(){const v={...DEFAULTS};$$('[data-number]').forEach(e=>{if(!e.validity.valid)throw Error(`${e.getAttribute('aria-label')} must be between ${e.min} and ${e.max}, in steps of ${e.step}.`);v[e.dataset.number]=Number(e.value);});$$('[data-option]').forEach(e=>v[e.dataset.option]=e.value===''?NaN:Number(e.value));validate(v);const input=$('#nairu-setting');if(!input.validity.valid)throw Error('Enter a target unemployment rate between 0% and 10%.');const updated=withNairu(data,input.value===''?NaN:Number(input.value));data=updated;$('#nairu-value').textContent=f(data.targets.nairu)+'%';return v;}
 function stop(){cancelAnimationFrame(raf);animation=null;paused=false;}
 function cancelJob(){job++;worker?.terminate();worker=null;$('#optimize').textContent='Optimise';$('#optimize').disabled=!data;$('.policy-controls').removeAttribute('aria-busy');}
 function error(message){$('#policy-error').textContent=message||'';$('#policy-error').hidden=!message;}
@@ -38,7 +38,7 @@ function buildCharts(target=null){
     }
     axes+=xTicks(x,T,h,H);let ref='',note='';
     if(k==='TMI'){ref=`<rect class="band" x="${L}" y="${y(3)}" width="${w}" height="${y(2)-y(3)}"/><line class="target" x1="${L}" x2="${W-R}" y1="${y(2.5)}" y2="${y(2.5)}"/>`;note='Target: 2.5% · band: 2–3%';}
-    if(k==='UR'){ref=`<line class="nairu" x1="${L}" x2="${W-R}" y1="${y(data.targets.nairu)}" y2="${y(data.targets.nairu)}"/>`;note=`NAIRU: ${f(data.targets.nairu)}%`;}
+    if(k==='UR'){ref=`<line class="nairu" x1="${L}" x2="${W-R}" y1="${y(data.targets.nairu)}" y2="${y(data.targets.nairu)}"/>`;note=`Target: ${f(data.targets.nairu)}%`;}
     if(k==='LOSS')note='Lower is better';if(k==='CR')note='Grid: 25 bp · dots: quarters';
     const article=document.createElement('article');article.className='policy-chart';article.dataset.variable=k;
     const markers=(m)=>`<g class="${m}-points" ${m==='base'?'':'hidden'}>${data.quarters.map((q,t)=>k==='LOSS'&&t===0?'':`<circle class="point ${m}-point" data-quarter="${t}" cx="${x(t)}" cy="${y(0)}" r="${m==='base'?2:2.5}"><title>${q}</title></circle>`).join('')}</g>`;
