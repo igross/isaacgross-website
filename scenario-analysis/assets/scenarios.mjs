@@ -1,9 +1,10 @@
-import {scenario,csv} from './scenario-engine.mjs?v=3';
-import {fixedScales,axisTicks} from './scenario-scales.mjs?v=3';
+import {withHistory} from './scenario-history.mjs?v=1';
+import {scenario,csv} from './scenario-engine.mjs?v=4';
+import {fixedScales,axisTicks} from './scenario-scales.mjs?v=4';
 import {comparison} from './model-comparison.mjs?v=2';
 const $=id=>document.getElementById(id);
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const number=(v,d=2)=>v===null?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
+const number=(v,d=2)=>!Number.isFinite(v)?'Unavailable':(Math.abs(v)<.5*10**(-d)?0:v).toLocaleString('en-AU',{minimumFractionDigits:d,maximumFractionDigits:d});
 const signed=v=>(v>0?'+':'')+number(v);
 let shockPaths,references,scales,plotId=0,data,model,amounts={},result,peer,peerResult,notice='',selected=new Set(['RGDP','GDPPC','TMI','UR','CR','RHFCE','RDI']);
 const rawCache={};let explorerVersion=0;
@@ -29,9 +30,10 @@ function plot(base,path,labels,published,title,{native=false,responsive=false,do
   }
   for(const v of axisTicks(lo,hi)){content+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${tick(v)}</text>`;}
   labels.forEach((label,i)=>{
-    const major=i%4===0;
+    const calendar=/^(Mar|Jun|Sep|Dec) \d{4}$/.test(label);
+    const major=calendar?label.startsWith('Mar '):i%4===0;
     content+=`<line class="axis-tick ${major?'major':'minor'}" x1="${x(i)}" x2="${x(i)}" y1="${height-bottom}" y2="${height-bottom+(major?7:3.5)}"/>`;
-    if(major)content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(label)}</text>`;
+    if(major)content+=`<text x="${x(i)}" y="${height-11}" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${safe(calendar?label.split(' ')[1]:label)}</text>`;
   });
   content+=`<defs><clipPath id="${clipId}"><rect x="${left}" y="${top}" width="${width-left-right}" height="${height-top-bottom}"/></clipPath></defs><g clip-path="url(#${clipId})">`;
   if(!otherPath&&path.every(Number.isFinite))content+=`<path class="area" d="${pathD(path)} ${base.map((v,j)=>{const i=base.length-1-j;return `L${x(i)},${y(base[i])}`;}).join(' ')} Z"/>`;
@@ -39,8 +41,8 @@ function plot(base,path,labels,published,title,{native=false,responsive=false,do
   content+=`<path class="baseline ${native?'zero-reference':''}" d="${pathD(base)}"/>`;
   if(changed)content+=`<path class="scenario model-${lineModel}" d="${pathD(path)}"><title>${lineModel==='martin'?'MARTIN':'DINGO'}</title></path>`;
   if(otherPath)content+=`<path class="scenario model-${peer.model.id}" d="${pathD(otherPath)}"><title>${peer.model.id==='martin'?'MARTIN':'DINGO'}</title></path>`;
-  labels.forEach((label,i)=>{if(!published[i])return;
-    const actual=!native&&i===0&&historical;
+  labels.forEach((label,i)=>{if(!published[i]||!Number.isFinite(base[i]))return;
+    const actual=!native&&(data.baseline[variable]?.observations?.[i]==='Actual');
     content+=`<circle class="baseline-dot ${actual?'actual-dot':''}" cx="${x(i)}" cy="${y(base[i])}" r="3"><title>${safe(label)}: ${actual?'actual':native?'zero reference':'RBA forecast'} ${number(base[i],3)}</title></circle>`;
     if(changed&&Number.isFinite(path[i])&&(native||i>=data.shockStart))content+=`<circle tabindex="0" role="img" aria-label="${safe(title)}, ${safe(label)}: ${number(path[i],3)}; baseline ${number(base[i],3)}" class="scenario-dot model-${model.id}" cx="${x(i)}" cy="${y(path[i])}" r="3.7"><title>${safe(label)}: scenario ${number(path[i],3)}; baseline ${number(base[i],3)}</title></circle>`;
   });
@@ -94,11 +96,11 @@ function update(){
   $('chart-grid').innerHTML=shockCharts()+[...visible].map(key=>[key,data.baseline[key]]).map(([key,b])=>{
     const s=result[key],other=peerResult?.[key];
     if(!s.covered&&!other?.covered)return `<article class="chart-card unmodeled" data-variable="${key}"><h3>${safe(b.name)} <span>(variable not modeled)</span></h3></article>`;
-    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key,otherPath:other?.covered?other.values:null})}${[...s.values,...(other?.values||[])].some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${peer&&(!s.covered||!other?.covered)?`<p class="coverage">${!s.covered?model.id==='dsge'?'DINGO':'MARTIN':peer.model.id==='dsge'?'DINGO':'MARTIN'}: variable not modeled.</p>`:''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}${peer?.model.mappingNotes[key]?'<br>'+safe(peer.model.mappingNotes[key]):''}</p></details>`:''}</article>`;
+    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key,otherPath:other?.covered?other.values:null})}${[...s.values,...(other?.values||[])].some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${peer&&(!s.covered||!other?.covered)?`<p class="coverage">${!s.covered?model.id==='dsge'?'DINGO':'MARTIN':peer.model.id==='dsge'?'DINGO':'MARTIN'}: variable not modeled.</p>`:''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${b.historyMissing?'<p class="coverage">Some historical observations unavailable.</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}${peer?.model.mappingNotes[key]?'<br>'+safe(peer.model.mappingNotes[key]):''}</p></details>`:''}</article>`;
   }).join('');
   extraMartinChart();
   const outputs=[{model,result},...(peer?[{model:peer.model,result:peerResult}]:[])];
-  $('scenario-table').innerHTML='<thead><tr><th>Model</th><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+outputs.flatMap(o=>Object.entries(o.result).filter(([key])=>visible.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${o.model.id==='martin'?'MARTIN':'DINGO'}</td><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${data.baseline[key].derived?'Derived':data.published[t]?'Published':'Interpolated'}</td></tr>`))).join('')+'</tbody>';
+  $('scenario-table').innerHTML='<thead><tr><th>Model</th><th>Variable</th><th>Quarter</th><th>Baseline</th><th>Scenario</th><th>Difference</th><th>Endpoint</th></tr></thead><tbody>'+outputs.flatMap(o=>Object.entries(o.result).filter(([key])=>visible.has(key)).flatMap(([key,s])=>data.quarters.map((q,t)=>`<tr><td>${o.model.id==='martin'?'MARTIN':'DINGO'}</td><td>${safe(data.baseline[key].name)}</td><td>${safe(q)}</td><td>${number(s.baseline[t])}</td><td>${number(s.values[t])}</td><td>${s.delta[t]===null?'Unavailable':signed(s.delta[t])}</td><td>${safe(data.baseline[key].observations?.[t]||'Forecast')}</td></tr>`))).join('')+'</tbody>';
   $('scenario-table').querySelector('tbody').insertAdjacentHTML('beforeend',shockRows().map(([name,variable,quarter,unit,value])=>`<tr><td>${safe(name)}</td><td>${safe(variable)} (${safe(unit)})</td><td>${safe(quarter)}</td><td>—</td><td>${number(value)}</td><td>—</td><td>Model deviation</td></tr>`).join(''));
 
 }
@@ -214,7 +216,7 @@ function explorerPlot(){
 }
 
 try{
-  const r=await fetch('assets/scenarios.json?v=dsge2026');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();const shocks=await fetch('assets/shock-paths.json?v=dsge2026');if(!shocks.ok)throw new Error('Could not load shock paths.');shockPaths=await shocks.json();scales=fixedScales(data);
+  const r=await fetch('assets/scenarios.json?v=dsge2026');if(!r.ok)throw new Error('Could not load scenario data.');data=await r.json();const hr=await fetch('assets/history.json?v=1');if(!hr.ok)throw Error('Could not load historical data.');data=withHistory(data,await hr.json());const ref=await fetch('assets/chart-references.json');if(!ref.ok)throw new Error('Could not load chart references.');references=await ref.json();const shocks=await fetch('assets/shock-paths.json?v=dsge2026');if(!shocks.ok)throw new Error('Could not load shock paths.');shockPaths=await shocks.json();scales=fixedScales(data);
   scales.UR=[Math.min(scales.UR[0],Math.floor(Math.min(...references.nairu.values)*2)/2),Math.max(scales.UR[1],Math.ceil(Math.max(...references.nairu.values)*2)/2)];
   scales.TMI=[Math.min(scales.TMI[0],2),Math.max(scales.TMI[1],3)];model=data.models[0];
   $('loading').hidden=true;$('application').hidden=false;modelUI();variableUI();renderShocks();update();extraMartinUI();

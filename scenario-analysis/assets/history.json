@@ -1,0 +1,248 @@
+{
+  "quarters": [
+    "Mar 2026",
+    "Jun 2026"
+  ],
+  "retrieved": "2026-09-27",
+  "series": {
+    "RGDP": {
+      "values": [
+        2.5,
+        2.1
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h1-data.csv",
+      "series": "Year-ended real GDP growth",
+      "method": "quarter"
+    },
+    "GDPPC": {
+      "values": [
+        1.0,
+        0.7
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h1-data.csv",
+      "series": "Year-ended real GDP per capita growth",
+      "method": "quarter"
+    },
+    "ToT": {
+      "values": [
+        0.20811654526535772,
+        -0.5246589716684125
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h1-data.csv",
+      "series": "Terms of trade",
+      "method": "Year-ended change of quarter"
+    },
+    "RHFCE": {
+      "values": [
+        2.4,
+        1.8
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h2-data.csv",
+      "series": "Year-ended household consumption growth",
+      "method": "quarter"
+    },
+    "RDI": {
+      "values": [
+        4.2,
+        5.8
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h2-data.csv",
+      "series": "Year-ended dwelling investment growth",
+      "method": "quarter"
+    },
+    "RBI": {
+      "values": [
+        10.5,
+        10.5
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h2-data.csv",
+      "series": "Year-ended business investment growth",
+      "method": "quarter"
+    },
+    "RPD": {
+      "values": [
+        2.1,
+        2.1
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h2-data.csv",
+      "series": "Year-ended public demand growth",
+      "method": "quarter"
+    },
+    "RGNE": {
+      "values": [
+        3.3,
+        2.9
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h2-data.csv",
+      "series": "Year-ended gross national expenditure growth",
+      "method": "quarter"
+    },
+    "RHDI": {
+      "values": [
+        1.9,
+        2.3
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h2-data.csv",
+      "series": "Year-ended real household disposable income growth",
+      "method": "quarter"
+    },
+    "HSR": {
+      "values": [
+        6.4,
+        6.5
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h2-data.csv",
+      "series": "Household saving ratio",
+      "method": "quarter"
+    },
+    "NWPI": {
+      "values": [
+        3.2,
+        3.2
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h4-data.csv",
+      "series": "Year-ended wage growth",
+      "method": "quarter"
+    },
+    "NAENA": {
+      "values": [
+        3.4,
+        3.2
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h4-data.csv",
+      "series": "Year-ended non-farm average earnings per hour growth",
+      "method": "quarter"
+    },
+    "GDPpHW": {
+      "values": [
+        0.0,
+        -0.3
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h4-data.csv",
+      "series": "Year-ended non-farm labour productivity per hour growth",
+      "method": "quarter"
+    },
+    "UR": {
+      "values": [
+        4.233333333333333,
+        4.433333333333334
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h5-data.csv",
+      "series": "Unemployment rate",
+      "method": "mean"
+    },
+    "Emp": {
+      "values": [
+        1.4719944099150561,
+        1.0969627315994268
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/h5-data.csv",
+      "series": "Employment",
+      "method": "Year-ended change of mean"
+    },
+    "CPI": {
+      "values": [
+        4.1,
+        3.9
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/g1-data.csv",
+      "series": "Year-ended inflation",
+      "method": "quarter"
+    },
+    "TMI": {
+      "values": [
+        3.5,
+        3.6
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/g1-data.csv",
+      "series": "Year-ended trimmed mean inflation \u2013 excluding interest charges and tax changes",
+      "method": "quarter"
+    },
+    "CR": {
+      "values": [
+        3.796666666666667,
+        4.253333333333333
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/f1.1-data.csv",
+      "series": "Cash Rate Target",
+      "method": "mean"
+    },
+    "TWI": {
+      "values": [
+        64.48870967741935,
+        66.08360655737705
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/f11.1-data.csv",
+      "series": "Trade-weighted Index May 1970 = 100",
+      "method": "mean"
+    },
+    "Imp": {
+      "values": [
+        8.1,
+        6.7
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/i1-data.csv",
+      "series": "Year-ended imports growth",
+      "method": "quarter"
+    },
+    "Exp": {
+      "values": [
+        3.5,
+        2.9
+      ],
+      "source": "https://www.rba.gov.au/statistics/tables/csv/i1-data.csv",
+      "series": "Year-ended exports growth",
+      "method": "quarter"
+    },
+    "ERP": {
+      "values": [
+        1.4,
+        null
+      ],
+      "source": "https://www.abs.gov.au/statistics/people/population/national-state-and-territory-population/mar-2026",
+      "series": "Estimated resident population annual growth",
+      "method": "Published annual growth; June observation not yet released"
+    },
+    "RMTPGDP": {
+      "values": [
+        null,
+        null
+      ],
+      "source": "https://www.rba.gov.au/publications/smp/2026/aug/outlook.html",
+      "method": "June actual only where marked historical in the source; missing history is left blank"
+    },
+    "HUR": {
+      "values": [
+        null,
+        null
+      ],
+      "source": "https://www.rba.gov.au/publications/smp/2026/aug/outlook.html",
+      "method": "June actual only where marked historical in the source; missing history is left blank"
+    },
+    "Crude": {
+      "values": [
+        null,
+        94.9
+      ],
+      "source": "https://www.rba.gov.au/publications/smp/2026/aug/outlook.html",
+      "method": "June actual only where marked historical in the source; missing history is left blank"
+    },
+    "RWPI": {
+      "values": [
+        null,
+        null
+      ],
+      "source": "https://www.rba.gov.au/publications/smp/2026/aug/outlook.html",
+      "method": "June actual only where marked historical in the source; missing history is left blank"
+    },
+    "RAENA": {
+      "values": [
+        null,
+        null
+      ],
+      "source": "https://www.rba.gov.au/publications/smp/2026/aug/outlook.html",
+      "method": "June actual only where marked historical in the source; missing history is left blank"
+    }
+  },
+  "note": "Latest available actuals; August 2026 SMP forecasts retained from September. Missing actuals are not estimated. Model-only response charts show deviations, not historical levels."
+}

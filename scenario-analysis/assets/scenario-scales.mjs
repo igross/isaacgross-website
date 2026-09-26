@@ -1,8 +1,8 @@
-import {scenario} from './scenario-engine.mjs?v=3';
+import {scenario} from './scenario-engine.mjs?v=4';
 // One reference domain per forecast variable, independent of active selections.
 // Include both directions of every example from both models, plus baseline.
 export function fixedScales(data) {
-  const bounds=Object.fromEntries(Object.entries(data.baseline).map(([key,b])=>[key,[Math.min(...b.values),Math.max(...b.values)]]));
+  const bounds=Object.fromEntries(Object.entries(data.baseline).map(([key,b])=>[key,[Math.min(...b.values.filter(Number.isFinite)),Math.max(...b.values.filter(Number.isFinite))]]));
   for(const model of data.models)for(const preset of model.presets)for(const sign of [-1,1]){
     const paths=scenario(data,model,{[preset.shock]:sign*preset.amount});
     for(const [key,path] of Object.entries(paths))for(const value of path.values){
