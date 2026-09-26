@@ -34,7 +34,7 @@ function linearSolve(matrix,rhs) {
   const n=rhs.length,a=matrix.map((row,i)=>[...row,rhs[i]]);
   for(let j=0;j<n;j++) {
     let pivot=j;for(let i=j+1;i<n;i++)if(Math.abs(a[i][j])>Math.abs(a[pivot][j]))pivot=i;
-    if(Math.abs(a[pivot][j])<1e-14)throw Error('Singular optimization system.');
+    if(Math.abs(a[pivot][j])<1e-14)throw Error('Singular optimisation system.');
     [a[j],a[pivot]]=[a[pivot],a[j]];
     for(let i=j+1;i<n;i++) {const q=a[i][j]/a[j][j];for(let k=j;k<=n;k++)a[i][k]-=q*a[j][k];}
   }
@@ -86,7 +86,7 @@ export function optimizePath(data,o=DEFAULTS) {
     if(blocking>=0)active.push(blocking);
     history.push(evaluate(data,x,o).total);
   }
-  if(!feasible(data,x,o)||!Number.isFinite(certificate)||certificate>1e-6)throw Error('The path optimizer did not converge. Try a positive smoothing weight.');
+  if(!feasible(data,x,o)||!Number.isFinite(certificate)||certificate>1e-6)throw Error('Optimiser did not converge. Try positive smoothing.');
   return {method:'path',...evaluate(data,x,o),rates:x,iterations,certificate,history};
 }
 export function simulateRule(data,theta,o=DEFAULTS) {
