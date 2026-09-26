@@ -1,7 +1,7 @@
 // Display transformations are kept independent of the monetary-policy solver.
 export const MARKET_URL='https://raw.githubusercontent.com/igross/cash-rate-forecasts/main/docs/data/cash-rate-latest.json';
 export const METHODS=['path','rule'];
-export const METHOD_NAMES={path:'Quarterly path',rule:'Policy rule'};
+export const METHOD_NAMES={path:'Policy under commitment',rule:'Systematic policy'};
 const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const serialQuarter=q=>{const [m,y]=q.split(' ');if(!months.includes(m)||!/^\d{4}$/.test(y))throw Error('Invalid forecast date');return +y*12+months.indexOf(m);};
 export function normalizeMarket(feed,quarters,now=Date.now()){

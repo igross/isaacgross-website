@@ -1,5 +1,5 @@
 import {DEFAULTS,validate,evaluate} from './policy-engine.mjs?v=2';
-import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,comparisonCSV,withNairu} from './policy-display.mjs?v=5';
+import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,withNairu} from './policy-display.mjs?v=6';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 let data,settings={...DEFAULTS},baseline,results,worker,job=0,animation,progress=0,paused=false,raf,charts={},domains={},market,marketRefresh=0,lastDraw=null;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -18,7 +18,11 @@ function niceBounds(values,old,nonnegative=false){
   return [nonnegative?0:Math.floor(lo/step)*step,Math.ceil(hi/step)*step,step];
 }
 function chartValues(k,r){return k==='LOSS'?[null,...r.loss]:r[k];}
-function xTicks(x,T,h,H){return data.quarters.map((q,t)=>`<line class="tick ${t%4===0?'major':'minor'}" data-quarter="${t}" x1="${x(t)}" x2="${x(t)}" y1="${T+h}" y2="${T+h+(t%4===0?7:3)}"/>`+(t%4===0?`<text x="${x(t)}" y="${H-8}" text-anchor="middle">${q}</text>`:'')).join('');}
+// March observations represent the January–March quarter; label its calendar year.
+function xTicks(x,T,h,H){return data.quarters.map((q,t)=>{
+  const firstQuarter=q.startsWith('Mar ');
+  return `<line class="tick ${firstQuarter?'major':'minor'}" data-quarter="${t}" x1="${x(t)}" x2="${x(t)}" y1="${T+h}" y2="${T+h+(firstQuarter?7:3)}"/>`+(firstQuarter?`<text x="${x(t)}" y="${H-8}" text-anchor="middle">${q.split(' ')[1]}</text>`:'');
+}).join('');}
 function buildCharts(target=null){
   const first=!Object.keys(domains).length;$('#policy-charts').innerHTML='';charts={};
   for(const k of Object.keys(names)){
@@ -39,10 +43,10 @@ function buildCharts(target=null){
     axes+=xTicks(x,T,h,H);let ref='',note='';
     if(k==='TMI'){ref=`<rect class="band" x="${L}" y="${y(3)}" width="${w}" height="${y(2)-y(3)}"/><line class="target" x1="${L}" x2="${W-R}" y1="${y(2.5)}" y2="${y(2.5)}"/>`;note='Target: 2.5% · band: 2–3%';}
     if(k==='UR'){ref=`<line class="nairu" x1="${L}" x2="${W-R}" y1="${y(data.targets.nairu)}" y2="${y(data.targets.nairu)}"/>`;note=`Target: ${f(data.targets.nairu)}%`;}
-    if(k==='LOSS')note='Lower is better';if(k==='CR')note='Grid: 25 bp · dots: quarters';
+    if(k==='LOSS')note='Lower is better';
     const article=document.createElement('article');article.className='policy-chart';article.dataset.variable=k;
     const markers=(m)=>`<g class="${m}-points" ${m==='base'?'':'hidden'}>${data.quarters.map((q,t)=>k==='LOSS'&&t===0?'':`<circle class="point ${m}-point" data-quarter="${t}" cx="${x(t)}" cy="${y(0)}" r="${m==='base'?2:2.5}"><title>${q}</title></circle>`).join('')}</g>`;
-    article.innerHTML=`<h3>${names[k]}</h3><p class="unit">${units[k]}</p><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${names[k]} forecast chart"><title>${names[k]}: baseline, quarterly path and policy rule</title>${ref}${axes}<path class="base"/>${k==='CR'?'<path class="market-line"/>':''}${METHODS.map(m=>`<path class="optimized ${m}-line" hidden/>`).join('')}${markers('base')}${METHODS.map(markers).join('')}<circle class="decision-cursor" r="5" hidden/><rect class="frame" x="${L}" y="${T}" width="${w}" height="${h}"/></svg><p class="chart-ref">${note}</p>`;
+    article.innerHTML=`<h3>${names[k]}</h3><p class="unit">${units[k]}</p><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${names[k]} forecast chart"><title>${names[k]}: baseline forecast, policy under commitment and systematic policy</title>${ref}${axes}<path class="base"/>${k==='CR'?'<path class="market-line"/>':''}${METHODS.map(m=>`<path class="optimized ${m}-line" hidden/>`).join('')}${markers('base')}${METHODS.map(markers).join('')}<circle class="decision-cursor" r="5" hidden/><rect class="frame" x="${L}" y="${T}" width="${w}" height="${h}"/></svg><p class="chart-ref">${note}</p>`;
     $('#policy-charts').append(article);
     const path=vals=>{let d='',connected=false;vals.forEach((v,t)=>{if(v===null){connected=false;return;}d+=`${connected?'L':'M'}${x(t).toFixed(2)},${y(v).toFixed(2)} `;connected=true;});return d;};
     charts[k]={article,path,x,y,points:Object.fromEntries(['base',...METHODS].map(m=>[m,[...article.querySelectorAll(`.${m}-points circle`)]]))};
@@ -57,7 +61,7 @@ function buildCharts(target=null){
 }
 function setPoints(c,m,values,show,k){
   c.article.querySelector(`.${m}-points`).toggleAttribute('hidden',!show);
-  for(const point of c.points[m]){const t=+point.dataset.quarter;point.setAttribute('cy',c.y(values[t]));point.querySelector('title').textContent=`${data.quarters[t]} · ${m==='base'?'RBA baseline':METHOD_NAMES[m]} ${f(values[t],3)}${k==='LOSS'?'':'%'}`;}
+  for(const point of c.points[m]){const t=+point.dataset.quarter;point.setAttribute('cy',c.y(values[t]));point.querySelector('title').textContent=`${data.quarters[t]} · ${m==='base'?'Baseline forecast':METHOD_NAMES[m]} ${f(values[t],3)}${k==='LOSS'?'':'%'}`;}
 }
 function buildBars(target){
   const max=Math.max(baseline.total,...METHODS.map(m=>target?.[m].total||0),1e-8)*1.07;
@@ -77,7 +81,7 @@ function buildDecisionChart(target){
   $('#decision-chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Quarterly cash-rate changes in basis points">${axes}<g id="decision-bars"></g><rect class="frame" x="${L}" y="${T}" width="${w}" height="${h}"/></svg>`;
   charts.decisions={x,y};
 }
-const decisionName=m=>m==='baseline'?'RBA baseline':METHOD_NAMES[m];
+const decisionName=m=>m==='baseline'?'Baseline forecast':METHOD_NAMES[m];
 function decisionTable(r){
   $('#decision-table').innerHTML='<thead><tr><th scope="col">Decision</th>'+data.quarters.slice(1).map(q=>`<th scope="col">${q}</th>`).join('')+'</tr></thead><tbody>'+['baseline',...METHODS].map(m=>{
     const rates=m==='baseline'?baseline.CR:r?.[m].CR;
@@ -102,11 +106,11 @@ function draw(r,show=true,phase=1){
   drawDecisions(r,show);
 }
 function table(r){
-  const head=['Quarter','RBA cash rate','Market','Quarterly path','Policy rule','RBA inflation','Quarterly path','Policy rule','RBA unemployment','Quarterly path','Policy rule','Baseline loss','Quarterly-path loss','Rule loss'];
+  const head=['Quarter','Baseline cash rate','Market path','Policy under commitment','Systematic policy','Baseline inflation','Policy under commitment','Systematic policy','Baseline unemployment','Policy under commitment','Systematic policy','Baseline loss','Commitment loss','Systematic policy loss'];
   $('#policy-table').innerHTML='<thead><tr>'+head.map(x=>`<th scope="col">${x}</th>`).join('')+'</tr></thead><tbody>'+data.quarters.map((q,t)=>'<tr><th scope="row">'+q+'</th>'+[baseline.CR[t],market?.quarterly[t]??null,r?.path.CR[t],r?.rule.CR[t],baseline.TMI[t],r?.path.TMI[t],r?.rule.TMI[t],baseline.UR[t],r?.path.UR[t],r?.rule.UR[t],t?baseline.loss[t-1]:null,t?r?.path.loss[t-1]:null,t?r?.rule.loss[t-1]:null].map(v=>`<td>${v==null?'—':f(v,3)}</td>`).join('')+'</tr>').join('')+'</tbody>';
 }
 function changed(){
-  stop();cancelJob();results=null;$('#download-policy').disabled=true;$('#replay-policy').hidden=true;$('#finish-policy').hidden=true;$('#rule-results').hidden=true;
+  stop();cancelJob();results=null;$('#replay-policy').hidden=true;$('#finish-policy').hidden=true;$('#rule-results').hidden=true;
   try{settings=settingValues();error('');baseline=evaluate(data,data.baseline.CR.slice(1),settings);$('#formula-pi').textContent=settings.inflation;$('#formula-u').textContent=settings.unemployment;$('#formula-i').textContent=settings.smoothing;buildCharts();draw({path:baseline,rule:baseline},false);table(null);$('#policy-status').textContent='Select Optimise.';}
   catch(e){error(e.message);$('#optimize').disabled=true;$('#policy-status').textContent='Check settings.';}
 }
@@ -118,7 +122,7 @@ function finish(){
 }
 function animate(){
   stop();progress=0;let last=null;paused=false;animation=true;
-  $('#policy-status').textContent='Quarterly path: sequential · rule: together';$('#loss-note').textContent='Animation: loss may temporarily rise.';
+  $('#policy-status').textContent='Commitment: sequential · systematic: together';$('#loss-note').textContent='Animation: loss may temporarily rise.';
   $('#replay-policy').textContent='Pause';$('#replay-policy').hidden=false;$('#finish-policy').hidden=false;
   const tick=now=>{if(!animation)return;if(last!==null&&!paused)progress=Math.min(1,progress+(now-last)/6000);last=now;
     const r=Object.fromEntries(METHODS.map(m=>[m,evaluate(data,transitionRates(data.baseline.CR.slice(1),results[m].rates,progress,m),settings)]));draw(r,true,progress);
@@ -127,7 +131,7 @@ function animate(){
   if(reduced.matches){finish();return;}raf=requestAnimationFrame(tick);
 }
 function solved(answer){
-  cancelJob();results=answer;error('');$('#download-policy').disabled=false;buildCharts(results);table(results);
+  cancelJob();results=answer;error('');buildCharts(results);table(results);
   const coeff=results.rule.coefficients;$('#rule-results').hidden=false;
   $('#rule-coefficients').innerHTML=['Inertia ρ','Inflation φπ','Unemployment φu','Momentum φd'].map((x,i)=>`<span>${x}<b>${f(coeff[i],3)}</b></span>`).join('');
   $('#rule-search-note').textContent='Best rule found. Coefficients: 0–5; inertia: 0–1.'+(coeff.some((v,i)=>v>=(i?5:1)-.001)?' Search bound reached.':'');
@@ -136,7 +140,7 @@ function solved(answer){
 function optimize(event){
   event.preventDefault();if(!$('#policy-form').reportValidity())return;
   try{settings=settingValues();error('');}catch(e){error(e.message);return;}
-  stop();cancelJob();const id=++job;$('#optimize').disabled=true;$('#optimize').textContent='Optimising…';$('.policy-controls').setAttribute('aria-busy','true');$('#policy-status').textContent='Calculating…';$('#finish-policy').hidden=true;$('#replay-policy').hidden=true;$('#download-policy').disabled=true;
+  stop();cancelJob();const id=++job;$('#optimize').disabled=true;$('#optimize').textContent='Optimising…';$('.policy-controls').setAttribute('aria-busy','true');$('#policy-status').textContent='Calculating…';$('#finish-policy').hidden=true;$('#replay-policy').hidden=true;
   try{worker=new Worker(new URL('./policy-worker.mjs?v=3',import.meta.url),{type:'module'});}catch{cancelJob();error('Optimiser unavailable. Reload to retry.');return;}
   worker.onmessage=({data:message})=>{if(message.id!==job)return;if(message.error){cancelJob();error(message.error);$('#policy-status').textContent='Optimisation failed.';}else solved(message.result);};
   worker.onerror=()=>{if(id!==job)return;cancelJob();error('Optimiser unavailable. Reload to retry.');$('#policy-status').textContent='Optimiser unavailable.';};
@@ -149,7 +153,7 @@ async function refreshMarket(){
   try{
     market=normalizeMarket(feed,data.quarters);const date=new Date(market.quoteDate+'T00:00:00Z').toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
     const last=new Date(market.lastMonth+'-01T00:00:00Z').toLocaleDateString('en-AU',{month:'short',year:'numeric',timeZone:'UTC'});
-    $('#market-status').textContent=`Market: ${date}${cached?' · saved copy; live feed unavailable':''} · contracts through ${last}${market.points.length?'':' · outside this forecast horizon'}`;
+    $('#market-status').textContent=`Market path: ${date}${cached?' · saved copy; live feed unavailable':''} · contracts through ${last}${market.points.length?'':' · outside this forecast horizon'}`;
     $('#market-legend').hidden=!market.points.length;
   }catch{market=null;$('#market-status').textContent='Market unavailable. Optimisers ready.';$('#market-legend').hidden=true;}
   const frame=lastDraw;buildCharts(results);draw(frame?.r||{path:baseline,rule:baseline},frame?.show||false,frame?.phase??1);table(results);
@@ -164,7 +168,6 @@ async function init(){
     $$('[data-option]').forEach(e=>e.addEventListener('input',changed));$('#nairu-setting').addEventListener('input',changed);$('#policy-form').addEventListener('submit',optimize);
     $('#reset-policy').addEventListener('click',()=>{$('#policy-form').reset();domains={};changed();});$('#finish-policy').addEventListener('click',finish);
     $('#replay-policy').addEventListener('click',()=>{if(animation){paused=!paused;$('#replay-policy').textContent=paused?'Continue':'Pause';}else animate();});
-    $('#download-policy').addEventListener('click',()=>{if(!results)return;const url=URL.createObjectURL(new Blob([comparisonCSV(data,results,settings,market)],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='optimal-policy-comparison.csv';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);});
     reduced.addEventListener('change',()=>{if(reduced.matches&&animation)finish();});
     refreshMarket();setInterval(()=>{if(!document.hidden)refreshMarket();},3600000);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-marketRefresh>=3600000)refreshMarket();});
   }catch{$('#policy-loading').textContent='The policy page could not load. ';const a=document.createElement('a');a.href='?reload='+Date.now();a.textContent='Try again';$('#policy-loading').append(a);}
