@@ -1,12 +1,12 @@
 import {DEFAULTS,validate,evaluate} from './policy-engine.mjs?v=2';
-import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,comparisonCSV} from './policy-display.mjs?v=3';
+import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,comparisonCSV,withNairu} from './policy-display.mjs?v=4';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 let data,settings={...DEFAULTS},baseline,results,worker,job=0,animation,progress=0,paused=false,raf,charts={},domains={},market,marketRefresh=0,lastDraw=null;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const f=(x,n=2)=>Number(x).toFixed(n),parts=['inflation','unemployment','smoothing'];
 const names={CR:'Cash rate',TMI:'Trimmed mean inflation',UR:'Unemployment',LOSS:'Quarterly loss'};
 const units={CR:'%',TMI:'Year-ended %',UR:'%',LOSS:'Weighted squared percentage points'};
-function settingValues(){const v={...DEFAULTS};$$('[data-number]').forEach(e=>{if(!e.validity.valid)throw Error(`${e.getAttribute('aria-label')} must be between ${e.min} and ${e.max}, in steps of ${e.step}.`);v[e.dataset.number]=Number(e.value);});$$('[data-option]').forEach(e=>v[e.dataset.option]=e.value===''?NaN:Number(e.value));validate(v);return v;}
+function settingValues(){const v={...DEFAULTS};$$('[data-number]').forEach(e=>{if(!e.validity.valid)throw Error(`${e.getAttribute('aria-label')} must be between ${e.min} and ${e.max}, in steps of ${e.step}.`);v[e.dataset.number]=Number(e.value);});$$('[data-option]').forEach(e=>v[e.dataset.option]=e.value===''?NaN:Number(e.value));validate(v);const input=$('#nairu-setting');if(!input.validity.valid)throw Error('Enter a NAIRU between 0% and 10%.');const updated=withNairu(data,input.value===''?NaN:Number(input.value));data=updated;$('#nairu-value').textContent=f(data.targets.nairu)+'%';return v;}
 function stop(){cancelAnimationFrame(raf);animation=null;paused=false;}
 function cancelJob(){job++;worker?.terminate();worker=null;$('#optimize').textContent='Optimise';$('#optimize').disabled=!data;$('.policy-controls').removeAttribute('aria-busy');}
 function error(message){$('#policy-error').textContent=message||'';$('#policy-error').hidden=!message;}
@@ -157,11 +157,11 @@ async function refreshMarket(){
 async function init(){
   try{
     const response=await fetch(new URL('./policy-data.json?v=1',import.meta.url),{signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('Forecast data could not load.');data=await response.json();
-    baseline=evaluate(data,data.baseline.CR.slice(1),settings);$('#nairu-value').textContent=f(data.targets.nairu)+'%';$('#nairu-source').href=data.sources.nairu;
+    $('#nairu-setting').defaultValue=f(data.targets.nairu);settings=settingValues();baseline=evaluate(data,data.baseline.CR.slice(1),settings);$('#nairu-value').textContent=f(data.targets.nairu)+'%';$('#nairu-source').href=data.sources.nairu;
     $('#policy-loading').hidden=true;$('#policy-app').hidden=false;$('#optimize').disabled=false;buildCharts();draw({path:baseline,rule:baseline},false);table(null);
     $$('[data-setting]').forEach(e=>e.addEventListener('input',()=>{$(`[data-number="${e.dataset.setting}"]`).value=e.value;changed();}));
     $$('[data-number]').forEach(e=>e.addEventListener('input',()=>{$(`[data-setting="${e.dataset.number}"]`).value=e.value;changed();}));
-    $$('[data-option]').forEach(e=>e.addEventListener('input',changed));$('#policy-form').addEventListener('submit',optimize);
+    $$('[data-option]').forEach(e=>e.addEventListener('input',changed));$('#nairu-setting').addEventListener('input',changed);$('#policy-form').addEventListener('submit',optimize);
     $('#reset-policy').addEventListener('click',()=>{$('#policy-form').reset();domains={};changed();});$('#finish-policy').addEventListener('click',finish);
     $('#replay-policy').addEventListener('click',()=>{if(animation){paused=!paused;$('#replay-policy').textContent=paused?'Continue':'Pause';}else animate();});
     $('#download-policy').addEventListener('click',()=>{if(!results)return;const url=URL.createObjectURL(new Blob([comparisonCSV(data,results,settings,market)],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='optimal-policy-comparison.csv';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);});

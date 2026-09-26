@@ -45,3 +45,8 @@ export function comparisonCSV(data,results,settings,market){
     data.baseline.TMI[t],results.path.TMI[t],results.rule.TMI[t],data.baseline.UR[t],results.path.UR[t],results.rule.UR[t],t?baselineLoss[t-1]:null,t?results.path.loss[t-1]:null,t?results.rule.loss[t-1]:null]));
   return rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
 }
+
+export function withNairu(data,value){
+  if(!Number.isFinite(value)||value<0||value>10)throw Error('NAIRU must be between 0% and 10%.');
+  return {...data,targets:{...data.targets,nairu:value}};
+}

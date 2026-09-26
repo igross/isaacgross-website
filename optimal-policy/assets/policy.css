@@ -11,3 +11,5 @@
 @media(max-width:560px){.policy-controls h2{margin-top:0}.policy-legend{gap:10px 14px}.policy-results-heading h2{font-size:1.95rem}.loss-heading{flex-wrap:wrap}#loss-change{display:flex;gap:10px;font-size:.65rem}.loss-bar-row{grid-template-columns:75px 1fr 39px;font-size:.65rem}.decision-card{padding:16px 12px}.decision-card svg{min-width:560px}#decision-chart{overflow-x:auto}.decision-card .small-note{font-size:.64rem}}
 
 .baseline-bar{fill:#111}#decision-table .baseline-decisions{color:#111}.decision-legend{margin:14px 0 8px;font-size:.7rem}.decision-legend i{width:9px;height:9px;border:0}.decision-legend .baseline-key{background:#111}.decision-legend .path-key{background:#b52b32}.decision-legend .rule-key{background:#245bc2}
+
+.nairu-control{margin-top:16px;grid-column:1/-1}.nairu-control label{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.85rem}.nairu-control input{width:80px}
