@@ -113,7 +113,7 @@ function changed(){
 function finish(){
   stop();progress=1;draw(results);$('#replay-policy').textContent='Replay';$('#replay-policy').hidden=false;$('#finish-policy').hidden=true;
   const higher=METHODS.filter(m=>results[m].total>baseline.total+1e-7);
-  $('#policy-status').textContent='Paths calculated.'+(higher.length?' '+higher.map(m=>METHOD_NAMES[m]).join(' and ')+' has higher loss than baseline.':'');
+  $('#policy-status').textContent=higher.length?higher.map(m=>METHOD_NAMES[m]).join(' and ')+' has higher loss than baseline.':'';
   $('#loss-note').textContent='Sum over ten quarters.';
 }
 function animate(){
