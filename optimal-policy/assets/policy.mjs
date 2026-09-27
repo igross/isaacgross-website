@@ -1,6 +1,7 @@
 import {DEFAULTS,validate,evaluate} from './policy-engine.mjs?v=2';
 import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,withNairu} from './policy-display.mjs?v=6';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let modelData={},selectedModel='martin';
 let data,settings={...DEFAULTS},baseline,results,worker,job=0,animation,progress=0,paused=false,raf,charts={},domains={},market,marketRefresh=0,lastDraw=null;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const f=(x,n=2)=>Number(x).toFixed(n),parts=['inflation','unemployment','smoothing'];
@@ -42,7 +43,7 @@ function buildCharts(target=null){
     }
     axes+=xTicks(x,T,h,H);let ref='',note='';
     if(k==='TMI'){ref=`<rect class="band" x="${L}" y="${y(3)}" width="${w}" height="${y(2)-y(3)}"/><line class="target" x1="${L}" x2="${W-R}" y1="${y(2.5)}" y2="${y(2.5)}"/>`;note='Target: 2.5% · band: 2–3%';}
-    if(k==='UR'){ref=`<line class="nairu" x1="${L}" x2="${W-R}" y1="${y(data.targets.nairu)}" y2="${y(data.targets.nairu)}"/>`;note=`Target: ${f(data.targets.nairu)}%`;}
+    if(k==='UR'){ref=`<line class="nairu" x1="${L}" x2="${W-R}" y1="${y(data.targets.nairu)}" y2="${y(data.targets.nairu)}"/>`;note=`Target: ${f(data.targets.nairu)}%${selectedModel==='dingo'?' · Okun proxy':''}`;}
     if(k==='LOSS')note='Lower is better';
     const article=document.createElement('article');article.className='policy-chart';article.dataset.variable=k;
     const markers=(m)=>`<g class="${m}-points" ${m==='base'?'':'hidden'}>${data.quarters.map((q,t)=>k==='LOSS'&&t===0?'':`<circle class="point ${m}-point" data-quarter="${t}" cx="${x(t)}" cy="${y(0)}" r="${m==='base'?2:2.5}"><title>${q}</title></circle>`).join('')}</g>`;
@@ -158,14 +159,24 @@ async function refreshMarket(){
   }catch{market=null;$('#market-status').textContent='Market unavailable. Optimisers ready.';$('#market-legend').hidden=true;}
   const frame=lastDraw;buildCharts(results);draw(frame?.r||{path:baseline,rule:baseline},frame?.show||false,frame?.phase??1);table(results);
 }
+function selectModel(id){
+  if(!modelData[id])return;
+  const target=data?.targets.nairu;
+  selectedModel=id;data=target===undefined?modelData[id]:withNairu(modelData[id],target);
+  $$('[data-model]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.model===id)));
+  $('#policy-results-title').textContent=`${id.toUpperCase()} policy paths`;
+  $('#model-note').textContent=id==='dingo'?'Unemployment: output-gap proxy × −0.8. Quarterly policy surprises.':'MARTIN unemployment equation.';
+  changed();
+}
 async function init(){
   try{
-    const response=await fetch(new URL('./policy-data.json?v=1',import.meta.url),{signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('Forecast data could not load.');data=await response.json();
+    const loaded=await Promise.all(['policy-data.json?v=1','dingo-policy-data.json?v=1'].map(async file=>{const response=await fetch(new URL('./'+file,import.meta.url),{signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('Forecast data could not load.');return response.json();}));modelData={martin:loaded[0],dingo:loaded[1]};data=modelData.martin;
     $('#nairu-setting').defaultValue=f(data.targets.nairu);settings=settingValues();baseline=evaluate(data,data.baseline.CR.slice(1),settings);$('#nairu-value').textContent=f(data.targets.nairu)+'%';$('#nairu-source').href=data.sources.nairu;
     $('#policy-loading').hidden=true;$('#policy-app').hidden=false;$('#optimize').disabled=false;buildCharts();draw({path:baseline,rule:baseline},false);table(null);
     $$('[data-setting]').forEach(e=>e.addEventListener('input',()=>{$(`[data-number="${e.dataset.setting}"]`).value=e.value;changed();}));
     $$('[data-number]').forEach(e=>e.addEventListener('input',()=>{$(`[data-setting="${e.dataset.number}"]`).value=e.value;changed();}));
     $$('[data-option]').forEach(e=>e.addEventListener('input',changed));$('#nairu-setting').addEventListener('input',changed);$('#policy-form').addEventListener('submit',optimize);
+    $$('[data-model]').forEach(button=>button.addEventListener('click',()=>selectModel(button.dataset.model)));
     $('#reset-policy').addEventListener('click',()=>{$('#policy-form').reset();domains={};changed();});$('#finish-policy').addEventListener('click',finish);
     $('#replay-policy').addEventListener('click',()=>{if(animation){paused=!paused;$('#replay-policy').textContent=paused?'Continue':'Pause';}else animate();});
     reduced.addEventListener('change',()=>{if(reduced.matches&&animation)finish();});
