@@ -1,4 +1,4 @@
-import {REFERENCE,COEFFICIENTS,TYPES,PURPOSES,estimate,compare} from './model.mjs';
+import {REFERENCE,COEFFICIENTS,TYPES,PURPOSES,estimate,compare} from './model.mjs?v=2';
 const $=id=>document.getElementById(id);
 const example={...REFERENCE,amount:750000,income:180000,lvr:70,months:12,broker:true};
 const fields=[
@@ -17,13 +17,13 @@ const fields=[
 ];
 function renderFields(target,list,prefix,values){
  $(target).classList.add('mortgage-fields');
- $(target).innerHTML=list.map(f=>`<div class="mortgage-field ${f.wide?'wide':''}"><label for="${prefix}${f.key}">${f.label}</label>${f.options?`<select id="${prefix}${f.key}" name="${f.key}">${f.options.map(([v,label])=>`<option value="${v}" ${values[f.key]===v?'selected':''}>${label}</option>`).join('')}</select>`:`<input id="${prefix}${f.key}" name="${f.key}" type="number" required min="${f.min}" max="${f.max}" step="${f.step}" inputmode="decimal" value="${values[f.key]}" aria-describedby="${prefix}${f.key}-help">`}${f.help?`<small id="${prefix}${f.key}-help">${f.help}</small>`:''}</div>`).join('');
+ $(target).innerHTML=list.map(f=>`<div class="mortgage-field ${f.wide?'wide':''}"><label for="${prefix}${f.key}">${f.label}</label>${f.options?`<select id="${prefix}${f.key}" name="${f.key}"><option value="">${prefix==='loan-'?'Not sure — use reference':'Use default assumption'}</option>${f.options.map(([v,label])=>`<option value="${v}" ${values[f.key]===v?'selected':''}>${label}</option>`).join('')}</select>`:`<input id="${prefix}${f.key}" name="${f.key}" type="number" min="${f.min}" max="${f.max}" step="${f.step}" inputmode="decimal" value="${values[f.key]??''}" placeholder="Optional" aria-describedby="${prefix}${f.key}-help">`}${f.help?`<small id="${prefix}${f.key}-help">${f.help}</small>`:''}</div>`).join('');
 }
-renderFields('primary-fields',fields.slice(0,5),'loan-',example);
-renderFields('extra-fields',fields.slice(5),'loan-',example);
+renderFields('primary-fields',fields.slice(0,5),'loan-',{type:'owner_pi'});
+renderFields('extra-fields',fields.slice(5),'loan-',{});
 renderFields('reference-fields',fields.filter(f=>f.key!=='type'),'ref-',REFERENCE);
-function read(prefix){const result={type:$('loan-type').value};for(const f of fields){const el=$(prefix+f.key);if(!el)continue; result[f.key]=f.options?(f.bool?el.value==='true':el.value):el.value.trim()===''?NaN:Number(el.value);}return result;}
-function reset(prefix,values){for(const f of fields){const el=$(prefix+f.key);if(el)el.value=String(values[f.key]);}update();}
+function read(prefix){const result={type:REFERENCE.type};for(const f of fields){const el=$(prefix+f.key);if(!el)continue; result[f.key]=el.validity.badInput?NaN:el.value.trim()===''?null:f.options?(f.bool?el.value==='true':el.value):Number(el.value);}return result;}
+function reset(prefix,values){for(const f of fields){const el=$(prefix+f.key);if(el)el.value=values[f.key]===undefined?'':String(values[f.key]);}update();}
 const signed=v=>`${v>0?'+':v<0?'−':''}${Math.abs(v).toFixed(1)}`;
 const pct=v=>`${v.toFixed(2)}%`;
 let market,result;
@@ -32,15 +32,22 @@ $('coefficient-rows').innerHTML=coeffRows.map(([label,v])=>`<tr><td>${label}</td
 function update(){
  if(!market)return;
  const p=read('loan-'),ref=read('ref-');
- for(const prefix of ['loan-','ref-'])for(const f of fields.filter(f=>!f.options)){const el=$(prefix+f.key);if(el)el.setAttribute('aria-invalid',String(!Number.isFinite(Number(el.value))||el.value.trim()===''||Number(el.value)<f.min||Number(el.value)>f.max));}
+ for(const prefix of ['loan-','ref-'])for(const f of fields.filter(f=>!f.options)){const el=$(prefix+f.key);if(el)el.setAttribute('aria-invalid',String(el.validity.badInput||(el.value.trim()!==''&&(!Number.isFinite(Number(el.value))||Number(el.value)<f.min||Number(el.value)>f.max))));}
  result=estimate(p,market,ref);
  $('form-error').hidden=!result.errors.length;
  if(result.errors.length){
+  $('assumptions').hidden=true;
   $('form-error').textContent='Check your loan and reference inputs. '+[...new Set(result.errors)].join(' ');
   $('expected-rate').textContent='—';$('estimate-detail').textContent='Complete valid inputs to calculate a benchmark.';
   $('comparison-result').textContent='Complete valid loan and reference inputs first.';
   $('comparison-result').className='';$('waterfall').replaceChildren();$('waterfall').setAttribute('aria-label','Chart unavailable until inputs are valid.');$('breakdown-rows').replaceChildren();$('age-note').hidden=true;return;
  }
+ const describe=key=>{const f=fields.find(f=>f.key===key),value=result.profile[key];return `${f.label}: ${f.options?f.options.find(([v])=>v===value)?.[1]:value.toLocaleString('en-AU')}`;};
+ $('assumptions').hidden=result.assumed.length===0&&result.referenceDefaults.length===0;
+ $('assumptions-summary').textContent=result.assumed.length?`${result.assumed.length} unanswered ${result.assumed.length===1?'field uses':'fields use'} reference assumptions`:'Default reference assumptions used';
+ $('assumptions-list').replaceChildren(...result.assumed.map(key=>{const li=document.createElement('li');li.textContent=describe(key);return li;}));
+ $('reference-defaults').textContent=result.referenceDefaults.length?`Blank reference fields use the site's original defaults: ${result.referenceDefaults.map(key=>fields.find(f=>f.key===key).label).join(', ')}.`:'';
+ $('personalisation-note').textContent=fields.filter(f=>f.key!=='type').every(f=>result.assumed.includes(f.key))?'With no borrower details, this is the loan-type average. Add details to personalise it.':result.assumed.length?'Blank fields use the reference values shown below. More completed details make this estimate more specific to you.':'All borrower details are supplied; no missing-value assumptions are needed.';
  $('expected-rate').innerHTML=`${pct(result.rate)}<small>p.a.</small>`;
  $('estimate-detail').textContent=`${pct(result.baseline)} loan-type average ${result.adjustmentBp<0?'−':'+'} ${(Math.abs(result.adjustmentBp)/100).toFixed(2)} percentage points for your profile.`;
  $('age-note').hidden=!result.ageCapped;
@@ -57,8 +64,8 @@ function draw(actual=null){
  const container=$('waterfall'),width=Math.max(260,container.clientWidth),compact=width<580;
  const left=compact?8:207,right=compact?8:95,plot=width-left-right,rowHeight=compact?54:39,top=42;
  let running=result.baseline;
- const rows=[{label:'RBA loan-type average',start:result.baseline,end:result.baseline,total:true,value:pct(result.baseline)}];
- for(const item of result.adjustments){const end=running+item.bp/100;rows.push({label:item.label,start:running,end,bp:item.bp,value:`${signed(item.bp)} bp`});running=end;}
+ const rows=[{label:`RBA loan-type average${result.assumed.includes('type')?' *':''}`,start:result.baseline,end:result.baseline,total:true,value:pct(result.baseline)}];
+ for(const item of result.adjustments){const end=running+item.bp/100;rows.push({label:item.label+(item.assumed?' *':''),start:running,end,bp:item.bp,value:`${signed(item.bp)} bp`});running=end;}
  rows.push({label:'Your estimated benchmark',start:running,end:running,total:true,value:pct(running)});
  if(actual!==null)rows.push({label:'Your actual rate',start:actual,end:actual,total:true,actual:true,value:pct(actual)});
  const values=rows.flatMap(r=>[r.start,r.end]),lo=Math.floor((Math.min(...values)-.08)*10)/10,hi=Math.ceil((Math.max(...values)+.08)*10)/10;
@@ -82,6 +89,7 @@ function draw(actual=null){
 for(const id of ['loan-form','reference-form']){$(id).addEventListener('input',update);$(id).addEventListener('submit',e=>e.preventDefault());}
 $('actual-rate').addEventListener('input',update);
 $('reset').addEventListener('click',()=>{reset('loan-',example);$('actual-rate').value='';update();});
+$('clear').addEventListener('click',()=>reset('loan-',{}));
 $('reset-reference').addEventListener('click',()=>reset('ref-',REFERENCE));
 new ResizeObserver(()=>{if(result&&!result.errors.length){const a=$('actual-rate').value.trim();draw(a!==''&&compare(Number(a),result.rate)?Number(a):null);}}).observe($('waterfall'));
 try{

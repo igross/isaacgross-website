@@ -3,6 +3,15 @@ export const COEFFICIENTS = Object.freeze({intercept:95.5,months:-0.8,amount:3.3
 export const TYPES = Object.freeze({owner_pi:0,owner_io:-8.5,investor_pi:15.3,investor_io:8.8});
 export const PURPOSES = Object.freeze({existing:0,refinance:1.3,new:0.1,construction:-8,other:-9.8});
 export const REFERENCE = Object.freeze({amount:600000,income:150000,lvr:80,months:24,type:'owner_pi',purpose:'existing',lmi:false,apartment:false,broker:false,fullDoc:true,nonMetro:false,notPayg:false});
+const missing = value => value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+function fillMissing(profile,defaults) {
+ const values={},assumed=[];
+ for(const key of Object.keys(REFERENCE)) {
+  values[key]=missing(profile[key])?defaults[key]:profile[key];
+  if(missing(profile[key]))assumed.push(key);
+ }
+ return {values,assumed};
+}
 export function validate(p) {
  const errors=[];
  for(const [key,min,max,label] of [['amount',10000,1650000,'Original loan amount'],['income',1000,10000000,'Annual income'],['lvr',1,100,'Original LVR'],['months',0,600,'Loan age']]) {
@@ -30,6 +39,8 @@ export function discountTerms(p) {
  ];
 }
 export function estimate(p,market,reference=REFERENCE) {
+ const referenceFill=fillMissing(reference,REFERENCE),profileFill=fillMissing(p,referenceFill.values);
+ reference=referenceFill.values;p=profileFill.values;
  const errors=[...validate(p),...validate(reference)];
  if(errors.length) return {errors};
  const baseline=market.rates[p.type]?.rate;
@@ -37,9 +48,9 @@ export function estimate(p,market,reference=REFERENCE) {
  // Reference matches loan type: current F6 type levels replace historical type pricing.
  // Intercept, type coefficient and common institution/state effects cancel in differences.
  const ref={...reference,type:p.type},rt=discountTerms(ref),terms=discountTerms(p);
- const adjustments=terms.filter(t=>t.key!=='type').map(t=>({key:t.key,label:t.label,bp:rt.find(r=>r.key===t.key).bp-t.bp}));
+ const adjustments=terms.filter(t=>t.key!=='type').map(t=>({key:t.key,label:t.label,bp:rt.find(r=>r.key===t.key).bp-t.bp,assumed:(t.key==='income'?['income','amount']:[t.key]).some(key=>profileFill.assumed.includes(key)||referenceFill.assumed.includes(key))}));
  const adjustmentBp=adjustments.reduce((s,t)=>s+t.bp,0);
- return {errors:[],baseline,adjustments,adjustmentBp,rate:baseline+adjustmentBp/100,ageCapped:p.months>47||ref.months>47};
+ return {errors:[],baseline,adjustments,adjustmentBp,rate:baseline+adjustmentBp/100,ageCapped:p.months>47||ref.months>47,profile:p,reference,assumed:profileFill.assumed,referenceDefaults:referenceFill.assumed};
 }
 export function compare(actual,expected) {
  if(typeof actual!=='number'||!Number.isFinite(actual)||actual<=0||actual>30||!Number.isFinite(expected)) return null;
