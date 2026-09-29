@@ -1,3 +1,4 @@
+import {cashRateAxis} from './cash-rate-axis.mjs?v=1';
 import {withHistory} from './scenario-history.mjs?v=1';
 import {scenario,csv} from './scenario-engine.mjs?v=4';
 import {fixedScales,axisTicks} from './scenario-scales.mjs?v=4';
@@ -13,11 +14,13 @@ function plot(base,path,labels,published,title,{native=false,responsive=false,do
   const columns=innerWidth<=540?1:2;
   const cardWidth=($('chart-grid').clientWidth-(columns-1)*(innerWidth<=1100?12:18))/columns;
   const width=native&&!responsive?600:Math.max(210,cardWidth-(innerWidth<=540?38:innerWidth<=1100?26:34));
-  const height=224,left=43,right=12,top=18,bottom=38;
+  let height=224;const left=48,right=12,top=18,bottom=38;
   const vals=[...base,...path].filter(Number.isFinite);
   let lo=Math.min(...vals),hi=Math.max(...vals);
   const margin=Math.max((hi-lo)*.18,native?1e-7:.12);lo-=margin;hi+=margin;
   if(domain)[lo,hi]=domain;
+  const rateAxis=variable==='CR'?cashRateAxis([...vals,...(otherPath||[])]):null;
+  if(rateAxis){lo=rateAxis.lo;hi=rateAxis.hi;height=Math.max(224,65+(rateAxis.ticks.length-1)*22);}
   const clipId=`plot-clip-${++plotId}`;
   const x=i=>left+i*(width-left-right)/(labels.length-1);
   const y=v=>top+(hi-v)/(hi-lo)*(height-top-bottom);
@@ -28,7 +31,7 @@ function plot(base,path,labels,published,title,{native=false,responsive=false,do
     const t=references.inflationTarget;
     content+=`<rect class="target-band" x="${left}" y="${y(t.upper)}" width="${width-left-right}" height="${y(t.lower)-y(t.upper)}"><title>Inflation target range: 2–3%</title></rect><line class="target-midpoint" x1="${left}" x2="${width-right}" y1="${y(t.midpoint)}" y2="${y(t.midpoint)}"><title>Target midpoint: 2.5%</title></line>`;
   }
-  for(const v of axisTicks(lo,hi)){content+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${tick(v)}</text>`;}
+  for(const v of (rateAxis?rateAxis.ticks:axisTicks(lo,hi))){content+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${rateAxis?v.toFixed(2):tick(v)}</text>`;}
   labels.forEach((label,i)=>{
     const calendar=/^(Mar|Jun|Sep|Dec) \d{4}$/.test(label);
     const major=calendar?label.startsWith('Mar '):i%4===0;
@@ -96,7 +99,7 @@ function update(){
   $('chart-grid').innerHTML=shockCharts()+[...visible].map(key=>[key,data.baseline[key]]).map(([key,b])=>{
     const s=result[key],other=peerResult?.[key];
     if(!s.covered&&!other?.covered)return `<article class="chart-card unmodeled" data-variable="${key}"><h3>${safe(b.name)} <span>(variable not modeled)</span></h3></article>`;
-    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key,otherPath:other?.covered?other.values:null})}${[...s.values,...(other?.values||[])].some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${peer&&(!s.covered||!other?.covered)?`<p class="coverage">${!s.covered?model.id==='dsge'?'DINGO':'MARTIN':peer.model.id==='dsge'?'DINGO':'MARTIN'}: variable not modeled.</p>`:''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${b.historyMissing?'<p class="coverage">Some historical observations unavailable.</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}${peer?.model.mappingNotes[key]?'<br>'+safe(peer.model.mappingNotes[key]):''}</p></details>`:''}</article>`;
+    return `<article class="chart-card" data-variable="${key}"><h3>${safe(b.name)}</h3><p class="chart-unit">${safe(b.unit)}</p>${plot(b.values,s.values,data.quarters,data.published,b.name,{domain:scales[key],historical:b.juneHistorical,variable:key,otherPath:other?.covered?other.values:null})}${key!=='CR'&&[...s.values,...(other?.values||[])].some(v=>Number.isFinite(v)&&(v<scales[key][0]||v>scales[key][1]))?'<p class="coverage">Beyond chart range · see table for values.</p>':''}${peer&&(!s.covered||!other?.covered)?`<p class="coverage">${!s.covered?model.id==='dsge'?'DINGO':'MARTIN':peer.model.id==='dsge'?'DINGO':'MARTIN'}: variable not modeled.</p>`:''}${key==='UR'?'<p class="reference-key"><i class="nairu-swatch"></i>Baseline NAIRU · <a href="'+references.nairu.source+'">Isaac Gross</a><br>4.89% · latest estimate held constant.</p>':key==='TMI'?'<p class="reference-key"><i class="target-swatch"></i>Inflation target 2–3% · midpoint 2.5%</p>':''}${b.historyMissing?'<p class="coverage">Some historical observations unavailable.</p>':''}${model.mappingNotes[key]?`<details class="mapping-note"><summary>Model note</summary><p>${safe(model.mappingNotes[key])}${peer?.model.mappingNotes[key]?'<br>'+safe(peer.model.mappingNotes[key]):''}</p></details>`:''}</article>`;
   }).join('');
   extraMartinChart();
   const outputs=[{model,result},...(peer?[{model:peer.model,result:peerResult}]:[])];

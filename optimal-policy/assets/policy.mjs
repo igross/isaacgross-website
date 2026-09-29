@@ -1,3 +1,4 @@
+import {cashRateAxis} from './cash-rate-axis.mjs?v=1';
 import {DEFAULTS,validate,evaluate} from './policy-engine.mjs?v=2';
 import {MARKET_URL,METHODS,METHOD_NAMES,normalizeMarket,rateDecisions,moveLabel,bpLabel,transitionRates,withNairu} from './policy-display.mjs?v=6';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -30,16 +31,18 @@ function buildCharts(target=null){
     const values=[...chartValues(k,baseline),...METHODS.flatMap(m=>target?chartValues(k,target[m]):[])].filter(Number.isFinite);
     if(k==='CR'&&market)values.push(...market.points.map(p=>p.value));
     if(k==='TMI')values.push(2,3);if(k==='UR')values.push(data.targets.nairu);if(k==='LOSS')values.push(0);
-    if(first){if(k==='CR')values.push(3.5,5.5);if(k==='TMI')values.push(2,4);if(k==='UR')values.push(4,5.5);}
-    const [lo,hi,step]=niceBounds(values,domains[k],k==='LOSS');domains[k]=[lo,hi,step];
-    const W=360,H=228,L=43,R=13,T=13,B=32,w=W-L-R,h=H-T-B;
+    if(first){if(k==='TMI')values.push(2,4);if(k==='UR')values.push(4,5.5);}
+    const rateAxis=k==='CR'?cashRateAxis(values):null;
+    const [lo,hi,step]=rateAxis?[rateAxis.lo,rateAxis.hi,.25]:niceBounds(values,domains[k],k==='LOSS');domains[k]=[lo,hi,step];
+    const W=360,H=rateAxis?Math.max(228,60+(rateAxis.ticks.length-1)*22):228,L=43,R=13,T=13,B=32,w=W-L-R,h=H-T-B;
     const x=t=>L+t/(data.quarters.length-1)*w,y=v=>T+(hi-v)/(hi-lo)*h;
     let axes='';
-    // Cash-rate grids/ticks every 25 bp; labels remain spaced at readable round values.
-    const gridStep=k==='CR'?.25:step,gridStart=Math.ceil((lo-1e-9)/gridStep)*gridStep;
-    for(let v=gridStart;v<=hi+gridStep*.01;v+=gridStep){
+    // Label every 25 bp step on the cash-rate lattice.
+    const gridStep=step,gridStart=Math.ceil((lo-1e-9)/gridStep)*gridStep;
+    const ticks=rateAxis?rateAxis.ticks:Array.from({length:Math.floor((hi-gridStart)/step+1e-8)+1},(_,i)=>gridStart+i*step);
+    for(const v of ticks){
       axes+=`<line class="grid ${k==='CR'?'quarter-point-grid':''}" data-value="${v.toFixed(4)}" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><line class="tick y-tick" x1="${L-3}" x2="${L}" y1="${y(v)}" y2="${y(v)}"/>`;
-      if(k!=='CR'||Math.abs(v/step-Math.round(v/step))<1e-6)axes+=`<text x="${L-8}" y="${y(v)+4}" text-anchor="end">${Math.abs(v)<1e-10?'0':+v.toFixed(3)}</text>`;
+      axes+=`<text x="${L-8}" y="${y(v)+4}" text-anchor="end">${k==='CR'?v.toFixed(2):Math.abs(v)<1e-10?'0':+v.toFixed(3)}</text>`;
     }
     axes+=xTicks(x,T,h,H);let ref='',note='';
     if(k==='TMI'){ref=`<rect class="band" x="${L}" y="${y(3)}" width="${w}" height="${y(2)-y(3)}"/><line class="target" x1="${L}" x2="${W-R}" y1="${y(2.5)}" y2="${y(2.5)}"/>`;note='Target: 2.5% · band: 2–3%';}
