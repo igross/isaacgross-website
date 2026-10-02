@@ -25,3 +25,16 @@ export function axisTicks(lo,hi) {
   for(let i=Math.ceil(lo/step-1e-9);i<=Math.floor(hi/step+1e-9);i++)ticks.push(Number((i*step).toPrecision(12)));
   return ticks;
 }
+
+// Recalculate from the reference domain on every render, never from the last zoom.
+export function scenarioDomain(normal, values) {
+  const finite=values.filter(Number.isFinite);
+  const lo=Math.min(normal[0],...finite),hi=Math.max(normal[1],...finite);
+  if(lo===normal[0]&&hi===normal[1])return [...normal];
+  const pad=(hi-lo)*.08;
+  const target=(hi-lo+2*pad)/4;
+  const power=10**Math.floor(Math.log10(target));
+  const step=[1,2,2.5,5,10].map(v=>v*power).find(v=>v>=target);
+  return [lo<normal[0]?Math.floor((lo-pad)/step)*step:normal[0],
+    hi>normal[1]?Math.ceil((hi+pad)/step)*step:normal[1]];
+}
