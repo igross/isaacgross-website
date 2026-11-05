@@ -53,11 +53,11 @@ main>.rate-history:first-child{margin-top:32px;margin-bottom:0}
 
 #rate-forward{stroke:url(#rate-forward-fade);stroke-width:2.5}
 
-/* Ambient cash-rate history: decorative, fixed and never interactive. */
+/* Ambient Fourier drawing. Opacity caps the entire stack of overlapping lines. */
 body{isolation:isolate;background:#fafcfd}
-#rate-background{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.34}
+#fourier-background{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.14}
 .site-header,main,footer{position:relative}
-@media(max-width:640px){#rate-background{opacity:.18}}
-@media print{#rate-background{display:none}}
+@media(max-width:640px){#fourier-background{opacity:.10}}
+@media print{#fourier-background{display:none}}
 
 .hero h1 .nickname{display:block;font-size:.42em;line-height:1.4;letter-spacing:-.02em;margin-top:10px}.hero h1{margin-bottom:28px}
