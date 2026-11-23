@@ -1,0 +1,192 @@
+{
+  "checked": "23 November 2026",
+  "meetings": [
+    {
+      "date": "2024-11-05",
+      "words": 3541,
+      "policy_words": 1408,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2024/2024-11-05.html",
+      "body_start_line": 135,
+      "body_end_line": 210,
+      "policy_start_line": 180,
+      "policy_end_line": 210,
+      "source_sha256": "5b9d2d00e74648d9060615c6f62eec4dd3b6fdc364c4f799c778c48b84fc1119"
+    },
+    {
+      "date": "2024-12-10",
+      "words": 3734,
+      "policy_words": 1251,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2024/2024-12-10.html",
+      "body_start_line": 136,
+      "body_end_line": 212,
+      "policy_start_line": 170,
+      "policy_end_line": 196,
+      "source_sha256": "2de9d40af0190d1d0b74d8b030cd49b7ba2f3658e85a7ad57019a8ec05ab3ee4"
+    },
+    {
+      "date": "2025-02-18",
+      "words": 4033,
+      "policy_words": 1665,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-02-18.html",
+      "body_start_line": 135,
+      "body_end_line": 219,
+      "policy_start_line": 185,
+      "policy_end_line": 219,
+      "source_sha256": "30ea9000491762224702c200023f11232367d18b46160c2999f0919425212bd5"
+    },
+    {
+      "date": "2025-04-01",
+      "words": 4468,
+      "policy_words": 1240,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-04-01.html",
+      "body_start_line": 134,
+      "body_end_line": 226,
+      "policy_start_line": 200,
+      "policy_end_line": 223,
+      "source_sha256": "412df2fc4b50fe005a0e58ae2f0b8b312f7828e4958d60904a1c87987e39ee6b"
+    },
+    {
+      "date": "2025-05-20",
+      "words": 4034,
+      "policy_words": 1670,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-05-20.html",
+      "body_start_line": 135,
+      "body_end_line": 218,
+      "policy_start_line": 180,
+      "policy_end_line": 218,
+      "source_sha256": "e48ee2ede1c6db6767495b9f833e489b9a12de42b9b8bb16e17e09e9278a0963"
+    },
+    {
+      "date": "2025-07-08",
+      "words": 3639,
+      "policy_words": 1213,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-07-08.html",
+      "body_start_line": 135,
+      "body_end_line": 209,
+      "policy_start_line": 182,
+      "policy_end_line": 209,
+      "source_sha256": "5a59ce93a0378f53c618d01af99a43f6e8a1e1a9adbea8dd942d827537e4968a"
+    },
+    {
+      "date": "2025-08-12",
+      "words": 3553,
+      "policy_words": 757,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-08-12.html",
+      "body_start_line": 136,
+      "body_end_line": 208,
+      "policy_start_line": 181,
+      "policy_end_line": 197,
+      "source_sha256": "ce4e7c31c56efddd2e11614266b6419bde25e3dba0443411a85e85153c4f295c"
+    },
+    {
+      "date": "2025-09-30",
+      "words": 3757,
+      "policy_words": 747,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-09-30.html",
+      "body_start_line": 134,
+      "body_end_line": 214,
+      "policy_start_line": 195,
+      "policy_end_line": 214,
+      "source_sha256": "6cae8421298f4e810bdbe8cd44340d8b5ce588709baec3ccef0dd047c375306f"
+    },
+    {
+      "date": "2025-11-04",
+      "words": 3848,
+      "policy_words": 1116,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-11-04.html",
+      "body_start_line": 136,
+      "body_end_line": 217,
+      "policy_start_line": 187,
+      "policy_end_line": 211,
+      "source_sha256": "3f64686b37068590eaf5eac8210bba5ffc1ad7cf15a81445e79c2b9012e80539"
+    },
+    {
+      "date": "2025-12-09",
+      "words": 3001,
+      "policy_words": 1145,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2025/2025-12-09.html",
+      "body_start_line": 135,
+      "body_end_line": 195,
+      "policy_start_line": 170,
+      "policy_end_line": 195,
+      "source_sha256": "d662987bc4e078b8dea7fe02309defab359b17ecac25d2c20c0bde4eaede4e29"
+    },
+    {
+      "date": "2026-02-03",
+      "words": 3968,
+      "policy_words": 1333,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-02-03.html",
+      "body_start_line": 135,
+      "body_end_line": 218,
+      "policy_start_line": 188,
+      "policy_end_line": 218,
+      "source_sha256": "fcd7dc9a4274353b631981df8c8b22f3c76d423e170941c912cb819b3808e454"
+    },
+    {
+      "date": "2026-03-17",
+      "words": 4956,
+      "policy_words": 1981,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-03-17.html",
+      "body_start_line": 134,
+      "body_end_line": 232,
+      "policy_start_line": 192,
+      "policy_end_line": 232,
+      "source_sha256": "743b01c4315db523d2bd04f9902176f6fe9ba0e7ef3d39b76ce2cf3026c953f9"
+    },
+    {
+      "date": "2026-05-05",
+      "words": 4512,
+      "policy_words": 1761,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-05-05.html",
+      "body_start_line": 136,
+      "body_end_line": 229,
+      "policy_start_line": 188,
+      "policy_end_line": 223,
+      "source_sha256": "1dca3da045a55d4f3886d028b46968f88843bc8a865427d72ea781b1c6cb86ef"
+    },
+    {
+      "date": "2026-06-16",
+      "words": 3015,
+      "policy_words": 782,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-06-16.html",
+      "body_start_line": 135,
+      "body_end_line": 200,
+      "policy_start_line": 177,
+      "policy_end_line": 195,
+      "source_sha256": "5b581708284c7b0df52f4887448fd65ebd902d3f652bbec3c24591c84f7c4b6f"
+    },
+    {
+      "date": "2026-08-11",
+      "words": 4049,
+      "policy_words": 1354,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-08-11.html",
+      "body_start_line": 136,
+      "body_end_line": 221,
+      "policy_start_line": 188,
+      "policy_end_line": 215,
+      "source_sha256": "631b6f80e8cced55ba5c758f333aed3e2d4ecef28b9bee832b2f5d9e1407c628"
+    },
+    {
+      "date": "2026-09-29",
+      "words": 4631,
+      "policy_words": 1413,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-09-29.html",
+      "body_start_line": 136,
+      "body_end_line": 236,
+      "policy_start_line": 200,
+      "policy_end_line": 229,
+      "source_sha256": "6c134672a3f5211b643751001cbc97fdcb71395c7988a77eda9d9c3a9cfabf4d"
+    },
+    {
+      "date": "2026-11-03",
+      "words": 4476,
+      "policy_words": 1938,
+      "source": "https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-11-03.html",
+      "body_start_line": 135,
+      "body_end_line": 224,
+      "policy_start_line": 184,
+      "policy_end_line": 224,
+      "source_sha256": "9404e3b28c14425ffd669a7e5fa288936f8c1103a4c982ba0423acdfce0d2968"
+    }
+  ]
+}
