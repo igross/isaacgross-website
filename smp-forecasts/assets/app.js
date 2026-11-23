@@ -1,0 +1,20 @@
+(async()=>{'use strict';
+const $=id=>document.getElementById(id), colors=['#9b5b19','#287c84','#97578e','#697c22','#b34745','#4068a3','#75634d','#b04d78','#176344'];
+let data;try{const r=await fetch('/smp-forecasts/assets/data.json');if(!r.ok)throw Error(r.status);data=await r.json()}catch(e){$('chart-note').textContent='Chart data could not load. Reload the page or use the CSV download below.';return}
+const all=data.series.CPI.forecasts;all.forEach(f=>{const o=document.createElement('option');o.value=f.date;o.textContent=f.vintage;$('vintage').append(o)});
+const qnum=q=>Number(q.slice(0,4))*4+Number(q.slice(-1))-1, label=q=>['Mar','Jun','Sep','Dec'][Number(q.slice(-1))-1]+' '+q.slice(0,4), fmt=x=>x==null?'—':x.toFixed(2), signed=x=>x==null?'—':(x>0?'+':'')+x.toFixed(2);
+function render(){const s=data.series[$('measure').value],fs=s.forecasts.filter(f=>$('vintage').value==='all'||f.date===$('vintage').value),actual=new Map(s.actuals.map(p=>[p.quarter,p.value])),last=s.actuals.at(-1).quarter,start=qnum('2024-Q4'),end=$('future').checked?Math.max(...fs.flatMap(f=>f.points.map(p=>qnum(p.quarter)))):qnum(last),ps=fs.flatMap(f=>f.points.filter(p=>qnum(p.quarter)<=end)),vals=[...s.actuals.map(p=>p.value),...ps.map(p=>p.value)];
+$('chart-title').textContent=s.name;$('chart-note').textContent=s.unit+' · Actuals through '+label(last)+'. Older actuals use the September 2026 data snapshot.';
+const width=Math.max(320,$('chart').clientWidth),height=width<600?340:420,L=48,R=18,T=22,B=48,min=Math.floor((Math.min(...vals)-.2)*2)/2,max=Math.ceil((Math.max(...vals)+.2)*2)/2,x=q=>L+(qnum(q)-start)/(end-start)*(width-L-R),y=v=>height-B-(v-min)/(max-min)*(height-T-B);
+let svg=`<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`;
+for(let i=0;i<=5;i++){const v=min+(max-min)*i/5;svg+=`<line x1="${L}" x2="${width-R}" y1="${y(v)}" y2="${y(v)}" stroke="#e2e7e2"/><text x="${L-9}" y="${y(v)+4}" text-anchor="end" fill="#526358" font-size="12">${v.toFixed(1)}</text>`}
+const stride=width<600?4:2;for(let n=start;n<=end;n++){if((n-start)%stride&&n!==end)continue;const q=`${Math.floor(n/4)}-Q${n%4+1}`;svg+=`<text x="${x(q)}" y="${height-18}" text-anchor="${n===start?'start':n===end?'end':'middle'}" fill="#526358" font-size="12">${label(q)}</text>`}
+function line(points,color,dashed,title){if(!points.length)return '';return `<polyline points="${points.map(p=>`${x(p.quarter)},${y(p.value)}`).join(' ')}" fill="none" stroke="${color}" stroke-width="${dashed?2:3.5}" ${dashed?'stroke-dasharray="6 4"':''}/>`+points.map(p=>`<circle cx="${x(p.quarter)}" cy="${y(p.value)}" r="${dashed?3:4}" fill="${color}"><title>${title}: ${label(p.quarter)}, ${fmt(p.value)}%</title></circle>`).join('')}
+fs.forEach(f=>svg+=line(f.points.filter(p=>qnum(p.quarter)<=end),colors[all.findIndex(a=>a.date===f.date)],true,f.vintage));svg+=line(s.actuals,'#172d25',false,'Actual')+'</svg>';$('chart').innerHTML=svg;
+$('legend').innerHTML='<span><i class="smp-swatch" style="border-top-style:solid;color:#172d25"></i>Actual</span>'+fs.map(f=>`<span><i class="smp-swatch" style="color:${colors[all.findIndex(a=>a.date===f.date)]}"></i>${f.vintage}</span>`).join('');
+const rows=fs.flatMap(f=>f.points.map(p=>({f,p,a:actual.get(p.quarter)}))),errors=rows.filter(r=>r.a!=null).map(r=>r.a-r.p.value),n=errors.length,mean=n?errors.reduce((a,b)=>a+b,0)/n:null,mae=n?errors.reduce((a,b)=>a+Math.abs(b),0)/n:null;
+$('scores').innerHTML=`<div><strong>${n}</strong><span>Observed forecast points</span></div><div><strong>${signed(mean)}</strong><span>Average error (pp)</span></div><div><strong>${fmt(mae)}</strong><span>Mean absolute error (pp)</span></div>`;
+$('table-caption').textContent=s.name+' · all target dates for selected releases';$('values').innerHTML=rows.map(r=>`<tr><td>${r.f.vintage}</td><td>${label(r.p.quarter)}</td><td>${fmt(r.p.value)}</td><td>${fmt(r.a)}</td><td>${signed(r.a==null?null:r.a-r.p.value)}</td></tr>`).join('');
+}
+['measure','vintage','future'].forEach(id=>$(id).addEventListener('change',render));new ResizeObserver(render).observe($('chart'));render();
+})();
