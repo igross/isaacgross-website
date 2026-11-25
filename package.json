@@ -1,0 +1,15 @@
+{
+  "name": "isaacgross-website",
+  "private": true,
+  "description": "Static site for isaacgross.net. No build step; tests only.",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:unit": "node --test test/data.test.mjs test/engines.test.mjs test/static.test.mjs",
+    "test:e2e": "node --test test/e2e.test.mjs",
+    "fixtures": "node test/fixtures/generate.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
