@@ -1,0 +1,11 @@
+date,actual_quarter,unemployment,assumption,model,model_quarter,gap,judgement,approximate,source,note
+2024-08-01,2024-06-30,4.0520803333333335,4.45,4.6,2024 Q1,-0.39792,-0.15,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/242513.pdf#page=1,Model endpoint used in August round; assumption = 4.60 minus 0.15.
+2024-11-01,2024-09-30,4.109691,4.45,,,-0.340309,,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/242525.pdf#page=11,Assumption inferred from 4.00 counterfactual described as 45 basis points lower.
+2025-02-01,2024-12-31,4.004481333333334,,,,,,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/262730.pdf#page=77,Final assumption not established here; public 4.50 benchmark is not substituted.
+2025-05-01,2025-03-31,4.096211666666666,4.3,,,-0.203788,,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/262730.pdf#page=52,Final internal assumption; public benchmark differed.
+2025-08-01,2025-06-30,4.171669666666666,4.3,,,-0.12833,,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/262730.pdf#page=72,Retained internal assumption.
+2025-11-01,2025-09-30,4.303939,4.5,4.82,2025 Q2,-0.196061,-0.32,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/262730.pdf#page=77,Final assumption adopted 17 October. Model excludes CPI nowcasts (including nowcasts: 4.91).
+2026-02-01,2025-12-31,4.2494776666666665,4.6,4.99,2025 Q3,-0.350522,-0.39,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/262730.pdf#page=51,Final assumption; excludes earlier 4.70 proposal. Model table p22.
+2026-05-01,2026-03-31,4.226218,4.6,5.03,2025 Q4,-0.373782,-0.43,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/262730.pdf#page=59,Final assumption; model table p27.
+2026-08-01,2026-06-30,4.448133,4.6,4.99,2026 Q1,-0.151867,-0.39,False,https://www.rba.gov.au/information/foi/disclosure-log/pdf/262730.pdf#page=66,Final assumption; model table p36.
+2026-11-01,2026-09-30,4.619711666666666,4.75,,,-0.130288,,True,https://www.rba.gov.au/publications/smp/2026/nov/economic-conditions.html,Approximate overall assessment: around 4¾%. No exact matched November model entered.
